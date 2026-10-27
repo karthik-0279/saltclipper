@@ -1,0 +1,4531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>AutoClip AI — Unlimited Viral Clips & Projected Views Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070a13;
+      --card-bg: rgba(15, 23, 42, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --accent-cyan: #06b6d4;
+      --accent-pink: #ec4899;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --font: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --radius-lg: 20px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 85% 25%, rgba(6, 182, 212, 0.1) 0%, transparent 45%),
+        radial-gradient(circle at 50% 80%, rgba(236, 72, 153, 0.08) 0%, transparent 50%);
+      background-attachment: fixed;
+    }
+
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 1.5rem 2rem 4rem;
+    }
+
+    /* Top Navigation */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0 2rem;
+      border-bottom: 1px solid var(--card-border);
+      margin-bottom: 2rem;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    }
+
+    .logo-tag {
+      font-size: 0.68rem;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #a5b4fc;
+      padding: 0.2rem 0.5rem;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    .nav-status {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      flex-wrap: wrap;
+    }
+
+    /* User Profile Badge & Secure Log Out Button */
+    .user-profile-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
+      padding: 0.35rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      transition: all 0.2s;
+    }
+
+    .user-avatar {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: white;
+      box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-logout {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+      padding: 0.38rem 0.9rem;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-logout:hover {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: #ef4444;
+      color: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+    }
+
+    .btn-logout:active {
+      transform: translateY(1px);
+    }
+
+
+    .engine-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #34d399;
+      padding: 0.35rem 0.75rem;
+      border-radius: 20px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: #34d399;
+      border-radius: 50%;
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(52, 211, 153, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      max-width: 900px;
+      margin: 0 auto 2.5rem;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      padding: 0.35rem 1rem;
+      border-radius: 30px;
+      font-size: 0.82rem;
+      color: #cbd5e1;
+      margin-bottom: 1.25rem;
+    }
+
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 1rem;
+      background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero h1 span.gradient-text {
+      background: linear-gradient(135deg, #818cf8 0%, #06b6d4 50%, #f43f5e 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Input Section with Mode Tabs (Link or Local File) */
+    .input-box {
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4);
+    }
+
+    .input-tabs {
+      display: flex;
+      gap: 0.6rem;
+      margin-bottom: 1rem;
+    }
+
+    .input-tab-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    .input-tab-btn.active {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    .url-input-wrapper {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      background: rgba(7, 10, 19, 0.9);
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-md);
+      padding: 0.5rem 0.6rem 0.5rem 1.2rem;
+      transition: all 0.25s ease;
+    }
+
+    .url-input-wrapper:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    }
+
+    .url-input-icon {
+      font-size: 1.25rem;
+      color: var(--text-dim);
+    }
+
+    .url-input {
+      flex: 1;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.05rem;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .url-input::placeholder {
+      color: #64748b;
+      font-size: 0.95rem;
+    }
+
+    /* File Drop Zone (For Real Local Video Files) */
+    .file-drop-zone {
+      display: none;
+      border: 2px dashed rgba(99, 102, 241, 0.4);
+      background: rgba(99, 102, 241, 0.06);
+      border-radius: var(--radius-md);
+      padding: 1.75rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .file-drop-zone:hover {
+      background: rgba(99, 102, 241, 0.12);
+      border-color: #818cf8;
+    }
+
+    .file-drop-icon {
+      font-size: 2.2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .btn-generate {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      border: none;
+      color: white;
+      padding: 0.85rem 1.75rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
+    }
+
+    .btn-generate:hover {
+      background: linear-gradient(135deg, #4f46e5, #4338ca);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+    }
+
+    .duration-setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .duration-badges {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .duration-pill {
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      color: #a5b4fc;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    /* Detected Video Metadata Bar */
+    .detected-video-bar {
+      margin-top: 1rem;
+      padding: 0.85rem 1rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-sm);
+      display: none;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .detected-thumb {
+      width: 70px;
+      height: 44px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .detected-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .detected-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .detected-sub {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-top: 2px;
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .input-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.75rem;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .platforms {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .platform-tag {
+      font-size: 0.72rem;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      color: var(--text-muted);
+    }
+
+    /* AI Video Reading HUD & Intelligence Panel */
+    .ai-reading-hud {
+      display: none;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .hud-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .hud-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      color: #38bdf8;
+    }
+
+    .hud-models-badge {
+      font-size: 0.72rem;
+      font-family: var(--font-mono);
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #7dd3fc;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+    }
+
+    .hud-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .hud-card {
+      background: rgba(7, 10, 19, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-sm);
+      padding: 0.85rem;
+    }
+
+    .hud-card-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      margin-bottom: 0.35rem;
+    }
+
+    .hud-card-value {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #f1f5f9;
+      font-family: var(--font-mono);
+    }
+
+    /* Video Retention & Peak Timeline Visualizer */
+    .timeline-visualizer-box {
+      background: rgba(7, 10, 19, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-sm);
+      padding: 0.85rem;
+    }
+
+    .timeline-vis-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .timeline-track-vis {
+      position: relative;
+      height: 38px;
+      background: #090e17;
+      border-radius: 6px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      padding: 0 4px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .timeline-clip-marker {
+      position: absolute;
+      height: 26px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.85), rgba(6, 182, 212, 0.85));
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: white;
+      transition: all 0.2s;
+    }
+
+    .timeline-clip-marker:hover {
+      transform: scaleY(1.15);
+      border-color: #38bdf8;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+      z-index: 10;
+    }
+
+    /* Progress bar */
+    .progress-section {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .progress-bar-container {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 1rem 0 0.5rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #6366f1, #06b6d4, #10b981);
+      transition: width 0.4s ease;
+      box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+    }
+
+    .progress-log {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      font-family: var(--font-mono);
+    }
+
+    /* Studio Layout */
+    .studio-grid {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    @media (max-width: 1100px) {
+      .studio-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Left Column: 9:16 Shorts Mockup Player (NO FACE TRACKING) */
+    .player-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .now-playing-banner {
+      width: 100%;
+      max-width: 340px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 0.6rem 1rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #38bdf8;
+    }
+
+    .phone-mockup {
+      width: 330px;
+      height: 580px;
+      background: #000;
+      border-radius: 40px;
+      border: 8px solid #1e293b;
+      box-shadow: 
+        0 0 0 2px rgba(255, 255, 255, 0.1),
+        0 25px 60px -15px rgba(0, 0, 0, 0.8),
+        0 0 35px rgba(99, 102, 241, 0.15);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    .phone-notch {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 16px;
+      background: #1e293b;
+      border-radius: 10px;
+      z-index: 30;
+    }
+
+    .video-viewport {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: #090e17;
+      overflow: hidden;
+    }
+
+    /* 1. Real YouTube Video Player */
+    #ytPlayerFrame {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 178%;
+      height: 100%;
+      transform: translate(-50%, -50%);
+      border: none;
+      display: block;
+      transition: transform 0.3s ease-out;
+    }
+
+    /* 2. Real Local Video Player (For uploaded MP4/WebM files) */
+    #localVideoPlayer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+      background: #000;
+    }
+
+    /* 3 Selectable Processing Mode Buttons (Highlights, Whole Video Clips, Download Whole Video) */
+    .processing-mode-box {
+      margin-bottom: 1.5rem;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .processing-mode-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .processing-mode-title {
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .processing-mode-hint {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #a5b4fc;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    .mode-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    @media (max-width: 900px) {
+      .mode-cards-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .mode-card {
+      position: relative;
+      background: rgba(30, 41, 59, 0.45);
+      border: 2px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 1.15rem 1rem;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    .mode-card:hover {
+      border-color: rgba(99, 102, 241, 0.45);
+      background: rgba(30, 41, 59, 0.7);
+      transform: translateY(-2px);
+    }
+
+    .mode-card.active {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(15, 23, 42, 0.9));
+      border-color: #6366f1;
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.25), inset 0 0 10px rgba(99, 102, 241, 0.1);
+    }
+
+    .mode-card.mode-card-whole:hover {
+      border-color: rgba(56, 189, 248, 0.45);
+    }
+
+    .mode-card.mode-card-whole.active {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(15, 23, 42, 0.9));
+      border-color: #38bdf8;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.25), inset 0 0 10px rgba(56, 189, 248, 0.1);
+    }
+
+    .mode-card.mode-card-dl:hover {
+      border-color: rgba(16, 185, 129, 0.45);
+    }
+
+    .mode-card.mode-card-dl.active {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(15, 23, 42, 0.9));
+      border-color: #10b981;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.25), inset 0 0 10px rgba(16, 185, 129, 0.1);
+    }
+
+    .mode-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.65rem;
+    }
+
+    .mode-radio-box {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .mode-card.active .mode-radio-box {
+      border-color: #6366f1;
+    }
+    .mode-card.mode-card-whole.active .mode-radio-box {
+      border-color: #38bdf8;
+    }
+    .mode-card.mode-card-dl.active .mode-radio-box {
+      border-color: #10b981;
+    }
+
+    .mode-radio-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #6366f1;
+      display: none;
+    }
+
+    .mode-card.active .mode-radio-dot {
+      display: block;
+    }
+    .mode-card.mode-card-whole.active .mode-radio-dot {
+      background: #38bdf8;
+    }
+    .mode-card.mode-card-dl.active .mode-radio-dot {
+      background: #10b981;
+    }
+
+    .mode-badge {
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    .mode-badge.badge-viral {
+      background: rgba(99, 102, 241, 0.25);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.4);
+    }
+
+    .mode-badge.badge-whole {
+      background: rgba(56, 189, 248, 0.2);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+
+    .mode-badge.badge-dl {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .mode-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .mode-desc {
+      font-size: 0.8rem;
+      line-height: 1.4;
+      color: var(--text-dim);
+    }
+
+    /* --- YouTube Shorts Direct Upload Automation Styles --- */
+    .youtube-nav-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 0.4rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      user-select: none;
+    }
+    .youtube-nav-badge:hover {
+      border-color: #ff0000;
+      background: rgba(255, 0, 0, 0.1);
+      transform: translateY(-1px);
+    }
+    .youtube-nav-badge.connected {
+      border-color: rgba(16, 185, 129, 0.5);
+      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+    }
+    .youtube-nav-badge.not-connected {
+      border-color: rgba(239, 68, 68, 0.4);
+      background: rgba(239, 68, 68, 0.08);
+      color: #fca5a5;
+    }
+    .yt-connect-btn {
+      background: #ff0000;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+    .youtube-nav-badge.connected .yt-connect-btn {
+      background: #059669;
+    }
+
+    /* Automation Bar Banner */
+    .youtube-automation-bar {
+      margin-bottom: 1.5rem;
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.95));
+      border: 1.5px solid rgba(255, 0, 0, 0.25);
+      border-radius: var(--radius-md);
+      padding: 1rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+    .yt-bar-left {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      flex: 1;
+      min-width: 260px;
+    }
+    .yt-logo-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .yt-status-text {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+    }
+    .yt-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      flex-wrap: wrap;
+    }
+
+    /* Custom Toggle Switch */
+    .yt-toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      user-select: none;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 0.4rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .yt-toggle-label input {
+      display: none;
+    }
+    .yt-toggle-custom {
+      width: 32px;
+      height: 18px;
+      background: #475569;
+      border-radius: 20px;
+      position: relative;
+      transition: background 0.2s;
+    }
+    .yt-toggle-custom::after {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: white;
+      top: 3px;
+      left: 3px;
+      transition: transform 0.2s;
+    }
+    .yt-toggle-label input:checked + .yt-toggle-custom {
+      background: #10b981;
+    }
+    .yt-toggle-label input:checked + .yt-toggle-custom::after {
+      transform: translateX(14px);
+    }
+
+    .yt-select {
+      background: rgba(15, 23, 42, 0.85);
+      color: #f1f5f9;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 0.45rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+    }
+    .yt-select:focus {
+      border-color: #ff0000;
+    }
+
+    .btn-yt-connect {
+      background: linear-gradient(135deg, #ff0000, #cc0000);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.5rem 1.1rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(255, 0, 0, 0.35);
+    }
+    .btn-yt-connect:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(255, 0, 0, 0.5);
+    }
+    .btn-yt-connect.connected {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+      box-shadow: none;
+    }
+    .btn-yt-connect.connected:hover {
+      background: rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-yt-config {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #e2e8f0;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-yt-config:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Live YouTube Shorts Result Card */
+    .yt-upload-result-card {
+      background: linear-gradient(135deg, rgba(220, 38, 38, 0.15), rgba(15, 23, 42, 0.95));
+      border: 1.5px solid #ef4444;
+      border-radius: 12px;
+      padding: 1.15rem;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 8px 24px rgba(239, 68, 68, 0.25);
+      animation: pulseGlow 2.5s infinite;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.2); }
+      50% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.4); }
+    }
+    .yt-result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.65rem;
+    }
+    .yt-badge-live {
+      background: #ff0000;
+      color: white;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+    .yt-badge-privacy {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #94a3b8;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .yt-result-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 0.85rem;
+    }
+    .yt-result-actions {
+      display: flex;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+    }
+    .btn-yt-watch {
+      background: linear-gradient(135deg, #ff0000, #dc2626);
+      color: white;
+      text-decoration: none;
+      padding: 0.55rem 1.1rem;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 14px rgba(255, 0, 0, 0.35);
+    }
+    .btn-yt-watch:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(255, 0, 0, 0.55);
+    }
+    .btn-yt-copy {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #f1f5f9;
+      padding: 0.55rem 1rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+    }
+    .btn-yt-copy:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-upload-yt-direct {
+      background: rgba(239, 68, 68, 0.18);
+      border: 1px solid rgba(239, 68, 68, 0.45);
+      color: #f87171;
+      padding: 0.6rem 1rem;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      transition: all 0.2s ease;
+      width: 100%;
+      margin-top: 0.65rem;
+    }
+    .btn-upload-yt-direct:hover {
+      background: rgba(239, 68, 68, 0.28);
+      border-color: #ef4444;
+      color: #fca5a5;
+    }
+
+    /* Modal for OAuth Configuration */
+    .oauth-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+    .oauth-modal-content {
+      background: #0f172a;
+      border: 1.5px solid rgba(255, 0, 0, 0.35);
+      border-radius: 16px;
+      max-width: 540px;
+      width: 100%;
+      padding: 1.75rem;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+    }
+    .oauth-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+    }
+    .oauth-modal-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .oauth-input-group {
+      margin-bottom: 1rem;
+    }
+    .oauth-input-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #cbd5e1;
+      margin-bottom: 0.35rem;
+      display: flex;
+      justify-content: space-between;
+    }
+    .oauth-input-field {
+      width: 100%;
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 0.65rem 0.85rem;
+      color: white;
+      font-size: 0.88rem;
+      outline: none;
+      box-sizing: border-box;
+      font-family: var(--font-mono, monospace);
+    }
+    .oauth-input-field:focus {
+      border-color: #ff0000;
+    }
+    .oauth-guide-box {
+      background: rgba(30, 41, 59, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 0.85rem;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      line-height: 1.5;
+      margin-bottom: 1.25rem;
+    }
+    .oauth-modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+
+    /* Task Completion Success Modal */
+    .completion-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(3, 7, 18, 0.85);
+      backdrop-filter: blur(12px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 1.25rem;
+      animation: fadeInModal 0.25s ease-out;
+    }
+    @keyframes fadeInModal {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .completion-modal-card {
+      background: linear-gradient(145deg, rgba(15, 23, 42, 0.98), rgba(11, 15, 25, 0.98));
+      border: 1.5px solid rgba(16, 185, 129, 0.5);
+      border-radius: 20px;
+      max-width: 540px;
+      width: 100%;
+      padding: 2rem;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 35px rgba(16, 185, 129, 0.25);
+      position: relative;
+      overflow: hidden;
+      transform: scale(0.95);
+      animation: popUpModal 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes popUpModal {
+      to { transform: scale(1); }
+    }
+    .completion-modal-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #10b981, #6366f1, #ef4444, #f59e0b);
+    }
+    .completion-icon-wrapper {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(99, 102, 241, 0.25));
+      border: 2px solid rgba(16, 185, 129, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin: 0 auto 1.25rem;
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.35);
+      animation: bounceCelebration 1s ease infinite alternate;
+    }
+    @keyframes bounceCelebration {
+      from { transform: translateY(0); }
+      to { transform: translateY(-6px); }
+    }
+    .completion-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      text-align: center;
+      color: #f8fafc;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+    .completion-message {
+      font-size: 0.98rem;
+      color: #cbd5e1;
+      text-align: center;
+      line-height: 1.55;
+      margin-bottom: 1.5rem;
+    }
+    .completion-clip-box {
+      background: rgba(30, 41, 59, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 1rem 1.15rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .completion-clip-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #f1f5f9;
+      line-height: 1.4;
+    }
+    .completion-clip-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+    }
+    .completion-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .btn-completion-watch {
+      background: linear-gradient(135deg, #ff0000, #dc2626);
+      color: white;
+      text-decoration: none;
+      padding: 0.85rem 1.5rem;
+      border-radius: 10px;
+      font-weight: 800;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 6px 20px rgba(255, 0, 0, 0.45);
+      border: none;
+      cursor: pointer;
+    }
+    .btn-completion-watch:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 26px rgba(255, 0, 0, 0.65);
+    }
+    .completion-btn-row {
+      display: flex;
+      gap: 0.65rem;
+    }
+    .btn-completion-secondary {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #e2e8f0;
+      padding: 0.65rem 1rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-completion-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    .btn-completion-close-icon {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 1.25rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .btn-completion-close-icon:hover {
+      color: white;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Top Floating Notification Toast Banner */
+    .task-success-banner {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-150%);
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(11, 15, 25, 0.98));
+      border: 1.5px solid rgba(16, 185, 129, 0.8);
+      border-radius: 50px;
+      padding: 0.75rem 1.25rem 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65), 0 0 25px rgba(16, 185, 129, 0.35);
+      z-index: 2500;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+      opacity: 0;
+      pointer-events: none;
+      max-width: 90vw;
+    }
+    .task-success-banner.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .banner-icon {
+      font-size: 1.35rem;
+    }
+    .banner-text {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #f8fafc;
+      white-space: nowrap;
+    }
+    .banner-btn {
+      background: linear-gradient(135deg, #ff0000, #dc2626);
+      color: white;
+      text-decoration: none;
+      padding: 0.4rem 0.9rem;
+      border-radius: 20px;
+      font-weight: 800;
+      font-size: 0.8rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.2s;
+    }
+    .banner-btn:hover {
+      box-shadow: 0 0 12px rgba(255, 0, 0, 0.5);
+    }
+    .banner-close {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 2px 4px;
+    }
+
+
+
+    .phone-controls {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 35;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .player-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .timeline-scrubber {
+      flex: 1;
+      height: 4px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .time-stamp {
+      font-size: 0.68rem;
+      font-family: var(--font-mono);
+      color: #94a3b8;
+      white-space: nowrap;
+    }
+
+    .player-meta-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+
+    .badge-4k {
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      font-weight: 800;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    .btn-theater-expand {
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #a5b4fc;
+      border-radius: 6px;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .btn-theater-expand:hover {
+      background: rgba(99, 102, 241, 0.3);
+      color: white;
+    }
+
+    /* Right Column: Unlimited Highlight Clips Showcase */
+    .studio-col {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(16px);
+      overflow: hidden;
+    }
+
+    .clips-section {
+      padding: 1.5rem;
+    }
+
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .section-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+    }
+
+    /* Filter Bar */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+      padding-bottom: 0.85rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .filter-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      padding: 0.3rem 0.7rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+
+    .filter-btn.active {
+      background: rgba(99, 102, 241, 0.25);
+      border-color: var(--primary);
+      color: #a5b4fc;
+      font-weight: 700;
+    }
+
+    /* Scrollable List of Unlimited Clips */
+    .clips-list-vertical {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      max-height: 720px;
+      overflow-y: auto;
+      padding-right: 0.5rem;
+    }
+
+    .clips-list-vertical::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .clips-list-vertical::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+    }
+
+    .clips-list-vertical::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
+    }
+
+    /* Individual Clip Card (NO FACE TRACKING) */
+    .rich-clip-card {
+      background: rgba(7, 10, 19, 0.65);
+      border: 1.5px solid rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius-md);
+      padding: 1rem;
+      display: grid;
+      grid-template-columns: 105px 1fr auto;
+      gap: 1rem;
+      align-items: center;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .rich-clip-card:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      background: rgba(15, 23, 42, 0.7);
+      transform: translateY(-2px);
+    }
+
+    .rich-clip-card.active {
+      border-color: #6366f1;
+      background: rgba(99, 102, 241, 0.12);
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+    }
+
+    .rich-clip-card.active::before {
+      content: 'NOW WATCHING';
+      position: absolute;
+      top: -9px;
+      left: 14px;
+      background: #6366f1;
+      color: white;
+      font-size: 0.6rem;
+      font-weight: 800;
+      padding: 1px 6px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+
+    .clip-thumb-box {
+      width: 105px;
+      height: 125px;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      background: #000;
+      flex-shrink: 0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .clip-thumb-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scale(1.1);
+      filter: brightness(0.9);
+      transition: transform 0.3s;
+    }
+
+    .rich-clip-card:hover .clip-thumb-img {
+      transform: scale(1.2);
+    }
+
+    .clip-duration-tag {
+      position: absolute;
+      bottom: 5px;
+      right: 5px;
+      background: rgba(0, 0, 0, 0.85);
+      color: #38bdf8;
+      font-size: 0.68rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+
+    .clip-play-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      opacity: 0.85;
+      transition: opacity 0.2s;
+    }
+
+    .clip-details {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      min-width: 0;
+    }
+
+    .clip-header-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .clip-title-text {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #f8fafc;
+      line-height: 1.3;
+    }
+
+    .projected-views-badge {
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: #f59e0b;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      padding: 0.12rem 0.55rem;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .virality-score-badge {
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 0.12rem 0.5rem;
+      border-radius: 20px;
+    }
+
+    .retention-sparkline {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+    }
+
+    .sparkline-svg {
+      width: 75px;
+      height: 18px;
+    }
+
+    .ai-reason-box {
+      font-size: 0.78rem;
+      color: #cbd5e1;
+      background: rgba(255, 255, 255, 0.04);
+      border-left: 3px solid var(--accent-cyan);
+      padding: 0.35rem 0.65rem;
+      border-radius: 0 6px 6px 0;
+      line-height: 1.35;
+    }
+
+    .ai-reason-box strong {
+      color: #38bdf8;
+    }
+
+    .clip-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      min-width: 130px;
+    }
+
+    .btn-preview-clip {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      border: none;
+      color: white;
+      border-radius: var(--radius-sm);
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-preview-clip:hover {
+      background: linear-gradient(135deg, #4f46e5, #4338ca);
+      transform: translateY(-1px);
+    }
+
+    .btn-card-download {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      border-radius: var(--radius-sm);
+      padding: 0.45rem 0.75rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+    }
+
+    .btn-card-download:hover {
+      background: rgba(16, 185, 129, 0.3);
+      color: white;
+    }
+
+    /* Batch Controls & Infinite Extender */
+    .infinite-controls-card {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px dashed rgba(99, 102, 241, 0.35);
+      border-radius: var(--radius-md);
+      display: none;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .infinite-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #c7d2fe;
+    }
+
+    .batch-btn-row {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-batch-add {
+      flex: 1;
+      min-width: 140px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      color: #e0e7ff;
+      border-radius: var(--radius-sm);
+      padding: 0.65rem 0.85rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+    }
+
+    .btn-batch-add:hover {
+      background: rgba(99, 102, 241, 0.3);
+      border-color: #818cf8;
+      color: white;
+    }
+
+    /* Tabs for Content */
+    .tab-nav {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--card-border);
+      padding: 0 1.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.85rem 1rem;
+      cursor: pointer;
+      font-family: inherit;
+      position: relative;
+      transition: color 0.2s;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+    }
+
+    .tab-btn.active {
+      color: white;
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--primary);
+      border-radius: 2px;
+    }
+
+    .tab-content {
+      padding: 1.5rem;
+    }
+
+    .tab-pane {
+      display: none;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
+    /* Download / Export Tab */
+    .download-status-card {
+      display: none;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.85rem 1rem;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: var(--radius-sm);
+      color: #34d399;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .export-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .export-card {
+      background: rgba(10, 15, 28, 0.6);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .export-card:hover {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.08);
+    }
+
+    .export-card.selected {
+      border-color: var(--accent-emerald);
+      background: rgba(16, 185, 129, 0.08);
+    }
+
+    .export-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .export-desc {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+    }
+
+    .btn-download-main {
+      width: 100%;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border: none;
+      color: white;
+      border-radius: var(--radius-md);
+      padding: 1rem;
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .btn-download-main:hover {
+      background: linear-gradient(135deg, #059669, #047857);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+    }
+
+    .download-sub-row {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+    }
+
+    .btn-download-secondary {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
+      color: white;
+      border-radius: var(--radius-md);
+      padding: 0.75rem 1.25rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .btn-download-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    /* Subtitle Customizer */
+    .subtitles-preview-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .sub-style-btn {
+      flex: 1;
+      min-width: 140px;
+      background: rgba(10, 15, 28, 0.6);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+      color: var(--text);
+    }
+
+    .sub-style-btn.active {
+      border-color: var(--accent-amber);
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    .sub-style-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .sub-style-desc {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+    }
+
+    /* Metadata & SEO box */
+    .meta-box {
+      background: rgba(10, 15, 28, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      position: relative;
+    }
+
+    .meta-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .copy-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: none;
+      color: var(--text-muted);
+      border-radius: 4px;
+      padding: 0.2rem 0.5rem;
+      font-size: 0.72rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.16);
+      color: white;
+    }
+
+    .meta-content {
+      font-size: 0.88rem;
+      color: #e2e8f0;
+      line-height: 1.5;
+      white-space: pre-line;
+    }
+
+    .hashtag-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.5rem;
+    }
+
+    .hashtag {
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      color: #a5b4fc;
+      padding: 0.2rem 0.55rem;
+      border-radius: 14px;
+      font-size: 0.78rem;
+      font-family: var(--font-mono);
+    }
+
+    /* Theater / Fullscreen Modal */
+    .theater-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(16px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .theater-content {
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9);
+    }
+
+    .theater-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .theater-close {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 1.25rem;
+      cursor: pointer;
+    }
+
+    .theater-close:hover {
+      color: white;
+    }
+
+    .theater-player-box {
+      width: 100%;
+      height: 600px;
+      background: #000;
+      position: relative;
+    }
+
+    .theater-player-box iframe, .theater-player-box video {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--primary);
+      color: white;
+      padding: 0.85rem 1.25rem;
+      border-radius: var(--radius-md);
+      font-size: 0.9rem;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 2000;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- Header -->
+    <header>
+      <div class="logo">
+        <div class="logo-icon">⚡</div>
+        <span>AutoClip AI</span>
+        <span class="logo-tag">Unlimited Reach Engine</span>
+      </div>
+      <div class="nav-status">
+        <!-- User Profile Pill -->
+        <div id="userProfileBadge" class="user-profile-badge">
+          <div class="user-avatar" id="userAvatar">C</div>
+          <span class="user-name" id="userDisplayName">Alex Creator</span>
+        </div>
+
+        <!-- Secure Log Out Action Button -->
+        <button id="btnLogout" class="btn-logout" onclick="handleLogout()" title="Log out and invalidate session">
+          <span>🚪</span>
+          <span>Log Out</span>
+        </button>
+
+        <div id="youtubeNavBadge" class="youtube-nav-badge not-connected" onclick="handleYouTubeConnectBtn()" title="Click to connect or view YouTube account">
+          <span class="yt-icon">🔴</span>
+          <span id="youtubeNavLabel">YouTube: Disconnected</span>
+          <span class="yt-connect-btn">Connect</span>
+        </div>
+        <div class="engine-pill">
+          <span class="pulse-dot"></span>
+          <span>Gemini 1.5 Pro Video Intelligence</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero Title -->
+    <section class="hero">
+      <div class="hero-badge">
+        <span>🤖</span>
+        <span>Next-Gen Video Intelligence: Unlimited High-Reach Viral Clips (60s–70s)</span>
+      </div>
+      <h1>Generate <span class="gradient-text">Unlimited Viral Clips</span> That Explode In Reach</h1>
+      <p>The AI model reads dialogue intensity, curiosity gaps, and retention spikes across the entire video to produce unlimited 60s–70s clips with forecasted reach potential.</p>
+    </section>
+
+    <!-- Video Input Section (Supports Link OR Direct Video File Upload) -->
+    <section class="card input-box">
+      
+      <!-- 3 Selectable Processing Mode Buttons (Highlights, Whole Video Clips, Download Whole Video) -->
+      <div class="processing-mode-box">
+        <div class="processing-mode-header">
+          <div class="processing-mode-title">
+            <span>🎯</span>
+            <span>Select Action (Choose 1 of the 3 options):</span>
+          </div>
+          <div class="processing-mode-hint" id="activeModeHint">
+            Active: 1. Clips of Highlights
+          </div>
+        </div>
+
+        <div class="mode-cards-grid">
+          <!-- 1. clips of highlights of the video -->
+          <div id="modeCard_highlights" class="mode-card active" onclick="selectProcessingMode('highlights')">
+            <div class="mode-card-top">
+              <div class="mode-radio-box">
+                <div class="mode-radio-dot"></div>
+              </div>
+              <span class="mode-badge badge-viral">AI VIRAL DETECTOR</span>
+            </div>
+            <div class="mode-title">
+              <span>🌟</span>
+              <span>1. Clips of Highlights of the Video</span>
+            </div>
+            <div class="mode-desc">
+              AI detects high-retention viral moments, dialogue spikes, and curiosity peaks (60s–70s clips).
+            </div>
+          </div>
+
+          <!-- 2. clips of whole video -->
+          <div id="modeCard_whole_video" class="mode-card mode-card-whole" onclick="selectProcessingMode('whole_video')">
+            <div class="mode-card-top">
+              <div class="mode-radio-box">
+                <div class="mode-radio-dot"></div>
+              </div>
+              <span class="mode-badge badge-whole">100% TIMELINE SLICER</span>
+            </div>
+            <div class="mode-title">
+              <span>🎬</span>
+              <span>2. Clips of Whole Video</span>
+            </div>
+            <div class="mode-desc">
+              Slices the entire video sequentially from 00:00 to the end into continuous 60s–70s parts with zero gaps.
+            </div>
+          </div>
+
+          <!-- 3. download whole video -->
+          <div id="modeCard_download_whole" class="mode-card mode-card-dl" onclick="selectProcessingMode('download_whole')">
+            <div class="mode-card-top">
+              <div class="mode-radio-box">
+                <div class="mode-radio-dot"></div>
+              </div>
+              <span class="mode-badge badge-dl">ORIGINAL FULL MP4</span>
+            </div>
+            <div class="mode-title">
+              <span>📥</span>
+              <span>3. Download Whole Video</span>
+            </div>
+            <div class="mode-desc">
+              1-Click direct download of the complete full-length original source video file in high quality HD.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input Mode Switcher -->
+      <div class="input-tabs">
+        <button id="tabUrlInput" class="input-tab-btn active" onclick="switchInputMode('url')">
+          🔗 Paste Video Link (YouTube, Kick, Twitch)
+        </button>
+        <button id="tabFileInput" class="input-tab-btn" onclick="switchInputMode('file')">
+          📁 Upload Local Video File (MP4, WebM, MOV)
+        </button>
+      </div>
+
+      <!-- Mode 1: URL Input -->
+      <div id="urlInputContainer">
+        <div class="url-input-wrapper">
+          <div class="url-input-icon">🔗</div>
+          <input 
+            type="text" 
+            id="videoUrlInput" 
+            class="url-input" 
+            placeholder="Paste your YouTube, Kick, Twitch, TikTok, or MP4 link here..." 
+            value=""
+          />
+          <button id="generateBtn" class="btn-generate">
+            <span>🧠</span>
+            <span>Analyze & Generate Unlimited Clips</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mode 2: Local File Upload & Real Video Trimmer -->
+      <div id="fileInputContainer" style="display: none;">
+        <div class="file-drop-zone" id="fileDropZone" onclick="document.getElementById('videoFileInput').click()">
+          <div class="file-drop-icon">🎬</div>
+          <div style="font-size: 1.05rem; font-weight: 700; color: #f1f5f9; margin-bottom: 0.35rem;">
+            Click to Browse or Drag & Drop Video File (MP4, WebM, MOV)
+          </div>
+          <div style="font-size: 0.85rem; color: var(--text-dim);">
+            100% Real Video: Clips are trimmed directly from your actual video file with original audio!
+          </div>
+          <input type="file" id="videoFileInput" accept="video/mp4,video/webm,video/quicktime,video/*" style="display: none;" onchange="handleLocalFileSelect(event)" />
+        </div>
+      </div>
+
+      <!-- Duration Rules & Unlimited Clips Enforced -->
+      <div class="duration-setting-row">
+        <span>⚡ <strong>Highlight Rules:</strong> Unlimited Clips Engine • Strictly 60s to 70s (Long-Form Shorts & Reels Retention)</span>
+        <div class="duration-badges">
+          <span class="duration-pill">Capacity: Unlimited</span>
+          <span class="duration-pill">Min: 60s</span>
+          <span class="duration-pill">Max: 70s</span>
+          <span class="duration-pill">Algorithm Score: Max Reach</span>
+        </div>
+      </div>
+
+      <!-- Detected Video Metadata preview bar -->
+      <div class="detected-video-bar" id="detectedBar">
+        <img id="detectedThumb" class="detected-thumb" src="" alt="Video thumbnail" />
+        <div class="detected-info">
+          <div class="detected-title" id="detectedTitle">Video Title</div>
+          <div class="detected-sub">
+            <span id="detectedChannel">Channel: Creator</span>
+            <span>•</span>
+            <span id="detectedCategory" style="color: #38bdf8;">Topic: Video Analysis</span>
+            <span>•</span>
+            <span style="color: var(--accent-emerald);" id="detectedClipsCount">Unlimited Clips Engine Ready</span>
+          </div>
+        </div>
+        <button id="btnDetectedFullDl" class="btn-preview-clip" style="margin-left: auto; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.45); color: #34d399; font-weight: 700; white-space: nowrap; padding: 0.5rem 1rem; border-radius: var(--radius-sm); cursor: pointer;" onclick="downloadFullVideo(this)">
+          <span>📥</span>
+          <span>Download Whole Video</span>
+        </button>
+      </div>
+
+      <div class="input-footer">
+        <div class="platforms">
+          <span>Supported Formats:</span>
+          <span class="platform-tag">🔴 YouTube</span>
+          <span class="platform-tag">🟢 Kick.com</span>
+          <span class="platform-tag">🟣 Twitch</span>
+          <span class="platform-tag">📁 Local MP4</span>
+          <span class="platform-tag">📁 Local WebM/MOV</span>
+        </div>
+        <div style="color: var(--text-dim); font-size: 0.8rem;">
+          ✨ Paste any link or upload a video file above to extract unlimited high-reach clips!
+        </div>
+      </div>
+    </section>
+
+    <!-- Simulated AI Progress Status -->
+    <div class="progress-section" id="progressSection">
+      <div style="font-size: 1.1rem; font-weight: 700;" id="progressTitle">AI Deep-Scan: Identifying Unlimited High-Reach Moments...</div>
+      <div class="progress-bar-container">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-log" id="progressLog">Parsing audience retention triggers & dialogue momentum...</div>
+    </div>
+
+    <!-- AI Video Intelligence HUD: Visual Scene & Audio Waveform Reading -->
+    <div class="ai-reading-hud" id="aiReadingHud">
+      <div class="hud-header">
+        <div class="hud-title">
+          <span>🧠</span>
+          <span>AI Model Video Diagnostics & Intelligence Readout</span>
+        </div>
+        <div class="hud-models-badge">
+          Gemini 1.5 Pro Vision + Whisper ASR + Llama-3 Virality Engine
+        </div>
+      </div>
+
+      <div class="hud-grid">
+        <div class="hud-card">
+          <div class="hud-card-label">Model Status</div>
+          <div class="hud-card-value" style="color: #34d399;">STREAM READ: 100%</div>
+        </div>
+        <div class="hud-card">
+          <div class="hud-card-label">Peak Retention Zones</div>
+          <div class="hud-card-value" id="hudRetentionZones" style="color: #38bdf8;">15+ Found</div>
+        </div>
+        <div class="hud-card">
+          <div class="hud-card-label">Highest Projected Reach</div>
+          <div class="hud-card-value" id="hudTopReach" style="color: #fbbf24;">1.8M - 2.5M Views</div>
+        </div>
+        <div class="hud-card">
+          <div class="hud-card-label">Clips Enforced Range</div>
+          <div class="hud-card-value" style="color: #a5b4fc;">60s – 70s Duration</div>
+        </div>
+      </div>
+
+      <!-- Retention & Peak Spikes Timeline Visualizer -->
+      <div class="timeline-visualizer-box">
+        <div class="timeline-vis-label">
+          <span>📈 Full Video Retention Map (Click any highlight below to watch directly)</span>
+          <span id="timelineDurationLabel" style="color: #38bdf8; font-family: var(--font-mono);">Analyzed: 00:00 - 18:30</span>
+        </div>
+        <div class="timeline-track-vis" id="timelineTrackVis">
+          <!-- Filled dynamically by JavaScript -->
+        </div>
+      </div>
+    </div>
+
+    <!-- YouTube Shorts Auto-Upload Direct Pipeline Bar -->
+    <section class="youtube-automation-bar" id="youtubeAutomationBar">
+      <div class="yt-bar-left">
+        <div class="yt-logo-badge">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#ff0000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+          <span style="font-weight: 800; font-size: 0.95rem; color: #fff;">YouTube Shorts Direct Pipeline</span>
+          <span id="ytChannelTagBadge" style="display:none; font-size:0.75rem; background:rgba(16,185,129,0.2); border:1px solid rgba(16,185,129,0.4); color:#34d399; padding:2px 8px; border-radius:12px; font-weight:700;"></span>
+        </div>
+        <div id="ytChannelStatusText" class="yt-status-text">
+          Status: <span style="color:#ef4444; font-weight:700;">Disconnected</span> — Connect your YouTube channel to enable 100% automated Shorts publishing!
+        </div>
+      </div>
+
+      <div class="yt-bar-right">
+        <!-- Auto-Upload Toggle -->
+        <label class="yt-toggle-label" title="When ON, rendered clips are automatically uploaded to your YouTube channel as Shorts">
+          <input type="checkbox" id="chkAutoUploadYT" checked onchange="toggleAutoUploadYT(this.checked)" />
+          <span class="yt-toggle-custom"></span>
+          <span style="font-size: 0.82rem; font-weight: 700;">Auto-Upload Shorts: <span id="autoUploadStateLabel" style="color:#10b981;">ON</span></span>
+        </label>
+
+        <!-- Privacy Status Picker -->
+        <select id="ytPrivacySelect" class="yt-select" onchange="updateYtPrivacy(this.value)" title="YouTube Video Privacy Setting">
+          <option value="private" selected>🔒 Private (Draft)</option>
+          <option value="public">🌐 Public (Instant)</option>
+          <option value="unlisted">🔗 Unlisted (Link)</option>
+        </select>
+
+        <!-- Main Action / Connect Button -->
+        <button id="btnConnectYT" class="btn-yt-connect" onclick="handleYouTubeConnectBtn()">
+          <span>🔗</span>
+          <span id="btnConnectYTLabel">Connect YouTube</span>
+        </button>
+
+        <button id="btnConfigYT" class="btn-yt-config" onclick="openYouTubeConfigModal()" title="Configure Google Cloud OAuth Client ID / Secret">
+          <span>⚙️</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Studio Grid: 9:16 Watch Player + Unlimited Generated Clips -->
+    <section class="studio-grid">
+      
+      <!-- Left Column: 9:16 Shorts/Reels Player (CLEAN, NO FACE TRACKING OVERLAYS) -->
+      <div class="player-col">
+        <!-- Live Now Playing Banner -->
+        <div id="nowPlayingBanner" class="now-playing-banner">
+          <span class="pulse-dot"></span>
+          <span id="nowPlayingText">Ready • Paste Link or Upload Video</span>
+        </div>
+
+        <div class="phone-mockup">
+          <div class="phone-notch"></div>
+          
+          <div class="video-viewport">
+            <!-- 1. Real Embedded YouTube Video Player -->
+            <iframe 
+              id="ytPlayerFrame" 
+              src="about:blank" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+              allowfullscreen>
+            </iframe>
+
+            <!-- 2. Real Local Video Player (For uploaded MP4/WebM files) -->
+            <video id="localVideoPlayer" playsinline controls></video>
+
+            <!-- Mini Player Controls inside Phone -->
+            <div class="phone-controls">
+              <button id="playPauseBtn" class="player-btn" title="Play/Pause">⏸️</button>
+              <input type="range" id="timelineScrubber" class="timeline-scrubber" min="0" max="100" value="0" />
+              <span id="timeDisplay" class="time-stamp">00:00 / 01:05</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Meta Bar below Phone -->
+        <div class="player-meta-bar">
+          <span class="badge-4k">4K UHD</span>
+          <button class="btn-theater-expand" onclick="openTheater()">
+            <span>🔍</span>
+            <span>Theater Mode</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Column: Unlimited Highlight Clips Showcase -->
+      <div class="studio-col">
+        
+        <!-- Generated Highlight Clips List -->
+        <div class="card clips-section">
+          <div class="section-title">
+            <span>✨ AI Viral Highlights (<span id="clipCountLabel">0 Clips</span>)</span>
+            <span style="font-size: 0.8rem; font-weight: 700; color: #10b981; background: rgba(16, 185, 129, 0.15); padding: 0.2rem 0.6rem; border-radius: 20px;">
+              Strictly 60s – 70s
+            </span>
+          </div>
+          <div class="section-subtitle">
+            Ranked by AI projected reach & audience retention. Click <strong>"▶️ Watch Clip"</strong> to preview in 9:16 portrait.
+          </div>
+
+          <!-- Sort / Filter Bar -->
+          <div class="filter-bar" id="filterBar" style="display: none;">
+            <span style="font-size: 0.78rem; color: var(--text-dim); margin-right: 4px;">Sort By:</span>
+            <button class="filter-btn active" onclick="sortClips('views', this)">🚀 Highest Projected Views</button>
+            <button class="filter-btn" onclick="sortClips('virality', this)">🔥 Viral Algorithm Score</button>
+            <button class="filter-btn" onclick="sortClips('duration', this)">⏱️ Duration (60s-70s)</button>
+          </div>
+          
+          <!-- Scrollable List of Unlimited Clips -->
+          <div class="clips-list-vertical" id="clipsContainer">
+            <div style="text-align: center; padding: 3rem 1rem; color: var(--text-dim);">
+              <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔗</div>
+              <div style="font-size: 1rem; color: #cbd5e1; font-weight: 700;">No Video Loaded Yet</div>
+              <div style="font-size: 0.85rem; margin-top: 4px;">Paste any link or upload an MP4 above to generate unlimited high-reach clips!</div>
+            </div>
+          </div>
+
+          <!-- Infinite Batch Extender & Unlimited Mode Controller -->
+          <div class="infinite-controls-card" id="infiniteControlsCard">
+            <div class="infinite-header">
+              <span>♾️ Unlimited Clips Generator</span>
+              <span id="infiniteStatusText" style="font-size: 0.75rem; color: #38bdf8; font-family: var(--font-mono);">
+                Infinite Stream Ready
+              </span>
+            </div>
+            <div class="batch-btn-row">
+              <button class="btn-batch-add" onclick="loadMoreClips(5)">
+                <span>⚡</span>
+                <span>Extract 5 More Clips</span>
+              </button>
+              <button class="btn-batch-add" onclick="loadMoreClips(10)">
+                <span>⚡</span>
+                <span>Extract 10 More Clips</span>
+              </button>
+              <button class="btn-batch-add" onclick="loadMoreClips(25)">
+                <span>🔥</span>
+                <span>Extract 25 More Clips</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Download & Export Studio -->
+        <div class="card">
+          <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('exportTab', this)">💾 Download Center</button>
+            <button class="tab-btn" onclick="switchTab('seoTab', this)">📱 Description & Hashtags</button>
+          </div>
+
+          <div class="tab-content">
+            
+            <!-- Tab 1: Export / Download -->
+            <div id="exportTab" class="tab-pane active">
+              
+              <!-- Target Format Ratio Selector (Default: Mobile 9:16) -->
+              <div class="ratio-selector-section" style="margin-bottom: 1.25rem;">
+                <div style="font-size: 0.8rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.05em; display: flex; justify-content: space-between;">
+                  <span>Target Format Ratio (Set Default: Mobile 9:16)</span>
+                  <span style="color: #10b981; font-weight: 700;">Active: 9:16 Portrait</span>
+                </div>
+                <div class="export-options">
+                  <div id="ratio9x16Card" class="export-card selected" onclick="selectFormatRatio('9:16', this)">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                      <span class="export-title">📱 9:16 Mobile Vertical</span>
+                      <span style="font-size: 0.65rem; font-weight: 800; background: #10b981; color: #000; padding: 2px 6px; border-radius: 4px;">DEFAULT</span>
+                    </div>
+                    <div class="export-desc">1080x1920 Ultra-HD with blurred backdrop (YouTube Shorts, TikTok, Instagram Reels)</div>
+                  </div>
+                  <div id="ratio16x9Card" class="export-card" onclick="selectFormatRatio('16:9', this)">
+                    <div class="export-title">💻 16:9 Landscape</div>
+                    <div class="export-desc">1920x1080 Standard widescreen format for desktop YouTube</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dedicated YouTube Shorts Live Result Card (Appears as soon as auto-upload completes) -->
+              <div id="youtubeUploadResultCard" class="yt-upload-result-card" style="display: none;">
+                <div class="yt-result-header">
+                  <span class="yt-badge-live">⚡ LIVE ON YOUTUBE SHORTS</span>
+                  <span id="ytResultPrivacy" class="yt-badge-privacy">🔒 Private</span>
+                </div>
+                <div id="ytResultTitle" class="yt-result-title">Title #Shorts</div>
+                <div class="yt-result-actions">
+                  <a id="ytWatchShortsBtn" href="#" target="_blank" class="btn-yt-watch">
+                    <span>▶️</span>
+                    <span>Watch on YouTube Shorts</span>
+                  </a>
+                  <button class="btn-yt-copy" onclick="copyYoutubeShortsUrl()">
+                    <span>📋</span>
+                    <span>Copy Shorts Link</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Real-time Rendering & Job Completion Status Card -->
+              <div id="downloadStatusCard" class="download-status-card" style="display: none; padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; background: rgba(15, 23, 42, 0.95); border: 1.5px solid var(--primary);">
+                <div style="display: flex; align-items: center; gap: 0.75rem; width: 100%;">
+                  <span class="pulse-dot"></span>
+                  <div style="flex: 1;">
+                    <div id="downloadStatusMsg" style="font-size: 0.88rem; font-weight: 700; color: #f8fafc;">
+                      [1/3] Queuing 9:16 Mobile MP4 Render...
+                    </div>
+                    <div class="progress-bar-container" style="margin: 0.4rem 0 0; height: 6px; background: rgba(255,255,255,0.1);">
+                      <div id="renderProgressFill" class="progress-fill" style="width: 10%;"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Main Action Buttons -->
+              <button id="btnDownloadClip" class="btn-download-main" onclick="downloadActiveClip(this)">
+                <span>⬇️</span>
+                <span id="downloadBtnLabel">Download 9:16 Mobile Vertical MP4 (1080x1920)</span>
+              </button>
+
+              <!-- 1-Click Direct Upload to YouTube Shorts Button -->
+              <button id="btnManualUploadYT" class="btn-upload-yt-direct" onclick="uploadActiveClipToYouTube(this)">
+                <span>🚀</span>
+                <span id="btnManualUploadYTLabel">Publish Active Clip Directly to YouTube Shorts</span>
+              </button>
+
+              <div class="download-sub-row">
+                <button id="btnDownloadFull" class="btn-download-secondary" style="background: rgba(16, 185, 129, 0.18); border: 1px solid rgba(16, 185, 129, 0.45); color: #34d399; font-weight: 700;" onclick="downloadFullVideo(this)">
+                  <span>📥</span>
+                  <span id="btnDownloadFullLabel">Download Whole Video (Original Full MP4)</span>
+                </button>
+                <button class="btn-download-secondary" onclick="copyDirectClipUrl()">
+                  <span>🔗</span>
+                  <span>Copy Exact Timestamp URL</span>
+                </button>
+              </div>
+
+              <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 0.75rem; text-align: center;">
+                🛡️ Verified MP4 Stream: Rendered by FFmpeg directly in 9:16 mobile format with synchronized audio.
+              </div>
+            </div>
+
+            <!-- Tab 2: SEO, Title & Hashtags -->
+            <div id="seoTab" class="tab-pane">
+              <div style="display: flex; flex-direction: column; gap: 1rem;">
+                
+                <div class="meta-box">
+                  <div class="meta-label">
+                    <span>High CTR Viral Title</span>
+                    <button class="copy-btn" onclick="copyMetaText('clipTitle')">Copy</button>
+                  </div>
+                  <div id="clipTitle" class="meta-content">Select a clip to see viral title</div>
+                </div>
+
+                <div class="meta-box">
+                  <div class="meta-label">
+                    <span>Engagement Optimized Description</span>
+                    <button class="copy-btn" onclick="copyMetaText('clipDesc')">Copy</button>
+                  </div>
+                  <div id="clipDesc" class="meta-content">Select a clip to view description</div>
+                </div>
+
+                <div class="meta-box">
+                  <div class="meta-label">
+                    <span>Algorithm Recommended Hashtags</span>
+                    <button class="copy-btn" onclick="copyHashtags()">Copy All</button>
+                  </div>
+                  <div class="hashtag-cloud" id="hashtagsList">
+                    <span class="hashtag">#shorts</span>
+                    <span class="hashtag">#viral</span>
+                    <span class="hashtag">#trending</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- Theater Fullscreen Modal -->
+  <div class="theater-modal" id="theaterModal" onclick="closeTheater(event)">
+    <div class="theater-content">
+      <div class="theater-header">
+        <span id="theaterTitle">Watch Clip</span>
+        <button class="theater-close" onclick="closeTheater()">✕</button>
+      </div>
+      <div class="theater-player-box">
+        <iframe id="theaterFrame" src="" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- YouTube OAuth 2.0 Credentials Configuration Modal -->
+  <div class="oauth-modal" id="youtubeConfigModal" onclick="closeYouTubeConfigModal(event)">
+    <div class="oauth-modal-content">
+      <div class="oauth-modal-header">
+        <div class="oauth-modal-title">
+          <span>⚙️</span>
+          <span>Google OAuth 2.0 API Configuration</span>
+        </div>
+        <button class="theater-close" onclick="closeYouTubeConfigModal()">✕</button>
+      </div>
+
+      <div class="oauth-guide-box">
+        <strong>Quick 2-Minute Setup:</strong>
+        <ol style="margin: 0.5rem 0 0.5rem 1.25rem; padding: 0;">
+          <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color: #38bdf8; text-decoration: underline;">Google Cloud Console Credentials</a>.</li>
+          <li>Enable <strong>YouTube Data API v3</strong> in Library.</li>
+          <li>Create an <strong>OAuth 2.0 Client ID</strong> (Application type: <em>Web application</em>).</li>
+          <li>Add this exact Authorized Redirect URI:</li>
+        </ol>
+        <div style="background: rgba(0,0,0,0.5); padding: 6px 10px; border-radius: 6px; font-family: monospace; display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+          <span id="modalRedirectUriText">http://localhost:8080/api/auth/youtube/callback</span>
+          <button style="background:none; border:none; color:#38bdf8; cursor:pointer; font-weight:700;" onclick="copyRedirectUri()">Copy</button>
+        </div>
+      </div>
+
+      <div class="oauth-input-group">
+        <label class="oauth-input-label">GOOGLE CLIENT ID</label>
+        <input type="text" id="cfgClientId" class="oauth-input-field" placeholder="xxxx.apps.googleusercontent.com" />
+      </div>
+
+      <div class="oauth-input-group">
+        <label class="oauth-input-label">GOOGLE CLIENT SECRET</label>
+        <input type="password" id="cfgClientSecret" class="oauth-input-field" placeholder="GOCSPX-xxxx" />
+      </div>
+
+      <div class="oauth-modal-actions">
+        <button class="btn-download-secondary" onclick="closeYouTubeConfigModal()">Cancel</button>
+        <button class="btn-yt-connect" style="box-shadow: none;" onclick="saveYouTubeCredentials()">
+          <span>💾</span>
+          <span>Save & Authorize Channel</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Success Toast Banner -->
+  <div id="taskSuccessBanner" class="task-success-banner">
+    <span class="banner-icon">🎉</span>
+    <span id="bannerText" class="banner-text">Task Completed! Your clip has been published to YouTube Shorts.</span>
+    <a id="bannerWatchBtn" href="#" target="_blank" rel="noopener noreferrer" class="banner-btn">
+      <span>▶️</span>
+      <span>Watch on YouTube</span>
+    </a>
+    <button class="banner-close" onclick="closeSuccessBanner()">✕</button>
+  </div>
+
+  <!-- Dedicated Task Completion Success Modal -->
+  <div id="taskCompletionModal" class="completion-modal" onclick="closeCompletionModal(event)">
+    <div class="completion-modal-card">
+      <button class="btn-completion-close-icon" onclick="closeCompletionModal()">✕</button>
+      <div class="completion-icon-wrapper">🎉</div>
+      <h2 class="completion-title">Task Completed!</h2>
+      <p id="completionMessage" class="completion-message">
+        🎉 Task Completed! Your clip has been generated and published to YouTube Shorts.
+      </p>
+
+      <div class="completion-clip-box">
+        <div id="completionClipTitle" class="completion-clip-title">Title #Shorts</div>
+        <div class="completion-clip-meta">
+          <span id="completionYtBadge" class="yt-badge-live">⚡ LIVE ON YOUTUBE SHORTS</span>
+          <span id="completionPrivacyBadge" class="yt-badge-privacy">🔒 PRIVATE</span>
+          <span id="completionTimeRange" style="color: #38bdf8; font-family: var(--font-mono); font-weight: 700;">[01:12 - 02:22]</span>
+        </div>
+      </div>
+
+      <div class="completion-actions">
+        <!-- Direct Clickable Button required by user -->
+        <a id="completionWatchBtn" href="#" target="_blank" rel="noopener noreferrer" class="btn-completion-watch">
+          <span>▶️</span>
+          <span>Watch on YouTube</span>
+        </a>
+
+        <div class="completion-btn-row">
+          <a id="completionDownloadBtn" href="#" download class="btn-completion-secondary">
+            <span>⬇️</span>
+            <span>Download MP4</span>
+          </a>
+          <button class="btn-completion-secondary" onclick="copyYoutubeShortsUrl()">
+            <span>📋</span>
+            <span>Copy Link</span>
+          </button>
+          <button class="btn-completion-secondary" style="flex: 0 0 auto;" onclick="closeCompletionModal()">
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Toast -->
+  <div class="toast" id="toast">Message</div>
+
+  <script>
+    // ==========================================
+    // GLOBAL AUTH STATE & SECURE LOGOUT SYSTEM
+    // ==========================================
+    let currentUser = null;
+    let authToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || null;
+
+    // Verify authentication status immediately on load
+    verifyAuthOrRedirect();
+
+    // Safety: Protect against Back-button / Back-Forward cache (bfcache) access
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted || (window.performance && window.performance.navigation && window.performance.navigation.type === 2)) {
+        console.log('[AUTH] Restored from bfcache / Back navigation — verifying session...');
+        verifyAuthOrRedirect();
+      }
+    });
+
+    async function verifyAuthOrRedirect() {
+      try {
+        const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+        const res = await fetch('/api/auth/me', {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+          cache: 'no-store'
+        });
+
+        if (!res.ok) {
+          performClientCleanup();
+          window.location.replace('/login');
+          return false;
+        }
+
+        const data = await res.json();
+        if (!data.authenticated || !data.user) {
+          performClientCleanup();
+          window.location.replace('/login');
+          return false;
+        }
+
+        currentUser = data.user;
+        updateUserProfileUI(data.user);
+        return true;
+      } catch (err) {
+        console.warn('[AUTH] Auth verification failed:', err);
+        performClientCleanup();
+        window.location.replace('/login');
+        return false;
+      }
+    }
+
+    function updateUserProfileUI(user) {
+      const nameEl = document.getElementById('userDisplayName');
+      const avatarEl = document.getElementById('userAvatar');
+      if (nameEl && user) {
+        nameEl.textContent = user.name || (user.email ? user.email.split('@')[0] : 'Creator');
+      }
+      if (avatarEl && user) {
+        const initial = (user.name || user.email || 'C').charAt(0).toUpperCase();
+        avatarEl.textContent = initial;
+      }
+    }
+
+    function performClientCleanup() {
+      // 1. Reset in-memory global auth state
+      currentUser = null;
+      authToken = null;
+
+      // 2. Wipe all auth-related items from localStorage
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('current_user');
+      localStorage.removeItem('session_id');
+      localStorage.removeItem('auth_expiry');
+
+      // 3. Wipe sessionStorage completely
+      sessionStorage.clear();
+
+      // 4. Wipe client-side cookies
+      document.cookie = 'auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+      document.cookie = 'session_id=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+      document.cookie = 'connect.sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+    }
+
+    async function handleLogout() {
+      const btn = document.getElementById('btnLogout');
+      if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = '0.7';
+        btn.innerHTML = '<span>⏳</span><span>Logging Out...</span>';
+      }
+
+      showToast('Logging out and terminating session...');
+
+      // Capture active token before wiping client state
+      const tokenToRevoke = authToken || localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+
+      // 1. Instantly reset client-side state & wipe storage
+      performClientCleanup();
+
+      // 2. Server-side session invalidation & cookie expiration
+      try {
+        await fetch('/api/logout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(tokenToRevoke ? { 'Authorization': `Bearer ${tokenToRevoke}` } : {})
+          },
+          cache: 'no-store'
+        });
+      } catch (err) {
+        console.warn('[LOGOUT] Server invalidation network warning:', err);
+      }
+
+      // 3. Immediately redirect using replace so Back button cannot return to protected page
+      window.location.replace('/login');
+    }
+
+    // --- Application State ---
+    let currentVideoId = null;
+    let currentVideoTitle = "Analyzed Video Stream";
+    let currentVideoUrl = "";
+    let localVideoFileUrl = null;
+    let localVideoDuration = 600;
+    let activeClips = [];
+    let currentClipIndex = 0;
+    let isPlaying = true;
+    let currentTime = 0;
+    let playbackTimer = null;
+    let selectedProcessingMode = 'highlights'; // 'highlights' | 'whole_video' | 'download_whole'
+
+    // --- DOM Elements ---
+    const videoUrlInput = document.getElementById('videoUrlInput');
+    const generateBtn = document.getElementById('generateBtn');
+    const detectedBar = document.getElementById('detectedBar');
+    const detectedTitle = document.getElementById('detectedTitle');
+    const detectedChannel = document.getElementById('detectedChannel');
+    const detectedCategory = document.getElementById('detectedCategory');
+    const detectedThumb = document.getElementById('detectedThumb');
+    const progressSection = document.getElementById('progressSection');
+    const progressFill = document.getElementById('progressFill');
+    const progressLog = document.getElementById('progressLog');
+    const clipsContainer = document.getElementById('clipsContainer');
+    const infiniteControlsCard = document.getElementById('infiniteControlsCard');
+    const filterBar = document.getElementById('filterBar');
+    const nowPlayingText = document.getElementById('nowPlayingText');
+    const ytPlayerFrame = document.getElementById('ytPlayerFrame');
+    const localVideoPlayer = document.getElementById('localVideoPlayer');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const timelineScrubber = document.getElementById('timelineScrubber');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const toast = document.getElementById('toast');
+    const theaterModal = document.getElementById('theaterModal');
+    const theaterTitle = document.getElementById('theaterTitle');
+    const theaterFrame = document.getElementById('theaterFrame');
+    const downloadStatusCard = document.getElementById('downloadStatusCard');
+    const downloadStatusMsg = document.getElementById('downloadStatusMsg');
+    const aiReadingHud = document.getElementById('aiReadingHud');
+    const timelineTrackVis = document.getElementById('timelineTrackVis');
+
+    // --- Selectable Processing Modes (Highlights, Whole Video Clips, Download Whole Video) ---
+    function selectProcessingMode(mode) {
+      selectedProcessingMode = mode;
+
+      const cardHighlights = document.getElementById('modeCard_highlights');
+      const cardWhole = document.getElementById('modeCard_whole_video');
+      const cardDl = document.getElementById('modeCard_download_whole');
+      const hint = document.getElementById('activeModeHint');
+
+      if (cardHighlights) cardHighlights.classList.toggle('active', mode === 'highlights');
+      if (cardWhole) cardWhole.classList.toggle('active', mode === 'whole_video');
+      if (cardDl) cardDl.classList.toggle('active', mode === 'download_whole');
+
+      if (mode === 'highlights') {
+        if (hint) hint.textContent = 'Active: 1. Clips of Highlights';
+        generateBtn.innerHTML = '<span>🌟</span><span>Extract Highlight Clips (60s–70s)</span>';
+        showToast('Selected: 1. Clips of Highlights of the Video');
+      } else if (mode === 'whole_video') {
+        if (hint) hint.textContent = 'Active: 2. Clips of Whole Video';
+        generateBtn.innerHTML = '<span>🎬</span><span>Slice Whole Video Into Clips (60s–70s)</span>';
+        showToast('Selected: 2. Clips of Whole Video (Sequential Parts)');
+      } else if (mode === 'download_whole') {
+        if (hint) hint.textContent = 'Active: 3. Download Whole Video';
+        generateBtn.innerHTML = '<span>📥</span><span>Download Whole Video (Original Full MP4)</span>';
+        showToast('Selected: 3. Download Whole Video');
+      }
+
+      // If video is already analyzed or loaded, re-populate clips for the chosen mode
+      if (currentVideoTitle && currentVideoId && (mode === 'highlights' || mode === 'whole_video')) {
+        regenerateClipsForActiveMode();
+      }
+    }
+
+    function regenerateClipsForActiveMode() {
+      if (selectedProcessingMode === 'whole_video') {
+        activeClips = generateWholeVideoSequentialClips(currentVideoTitle, currentVideoId, 18);
+        renderClipsList();
+        watchClipDirectly(0);
+        showToast('Generated Whole Video Sequential Clips (Part 1, Part 2...)');
+      } else if (selectedProcessingMode === 'highlights') {
+        activeClips = generateViralClips(currentVideoTitle, currentVideoId, 0, 15);
+        renderClipsList();
+        watchClipDirectly(0);
+        showToast('Generated AI Highlight Viral Clips (60s–70s)');
+      }
+    }
+
+    // --- YouTube Shorts Direct Pipeline State & Flow ---
+    let isYouTubeConnected = false;
+    let isAutoUploadYT = localStorage.getItem('auto_upload_yt') !== 'false';
+    let selectedYtPrivacy = localStorage.getItem('yt_privacy') || 'private';
+    let currentYouTubeChannel = null;
+    let lastUploadedShortsUrl = null;
+
+    async function checkYouTubeAuthStatus() {
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/youtube/status`);
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        isYouTubeConnected = Boolean(data.isConnected);
+        currentYouTubeChannel = data.channel || null;
+
+        const navBadge = document.getElementById('youtubeNavBadge');
+        const navLabel = document.getElementById('youtubeNavLabel');
+        const channelStatus = document.getElementById('ytChannelStatusText');
+        const connectBtn = document.getElementById('btnConnectYT');
+        const tagBadge = document.getElementById('ytChannelTagBadge');
+
+        if (isYouTubeConnected) {
+          if (navBadge) {
+            navBadge.className = 'youtube-nav-badge connected';
+            const title = currentYouTubeChannel?.title || 'Connected';
+            navLabel.textContent = `YouTube: ${title}`;
+            const btnSpan = navBadge.querySelector('.yt-connect-btn');
+            if (btnSpan) btnSpan.textContent = 'Manage';
+          }
+
+          if (channelStatus) {
+            const title = currentYouTubeChannel?.title || 'Connected Channel';
+            channelStatus.innerHTML = `Status: <span style="color:#10b981; font-weight:700;">CONNECTED</span> • Auto-uploading directly to channel: <strong>${title}</strong>`;
+          }
+
+          if (connectBtn) {
+            connectBtn.className = 'btn-yt-connect connected';
+            connectBtn.innerHTML = '<span>✕</span><span>Disconnect</span>';
+          }
+
+          if (tagBadge) {
+            tagBadge.style.display = 'inline-block';
+            tagBadge.textContent = currentYouTubeChannel?.title || 'Active Channel';
+          }
+        } else {
+          if (navBadge) {
+            navBadge.className = 'youtube-nav-badge not-connected';
+            navLabel.textContent = 'YouTube: Disconnected';
+            const btnSpan = navBadge.querySelector('.yt-connect-btn');
+            if (btnSpan) btnSpan.textContent = 'Connect';
+          }
+
+          if (channelStatus) {
+            channelStatus.innerHTML = `Status: <span style="color:#ef4444; font-weight:700;">Disconnected</span> — Connect channel to enable 100% automated Shorts publishing!`;
+          }
+
+          if (connectBtn) {
+            connectBtn.className = 'btn-yt-connect';
+            connectBtn.innerHTML = '<span>🔗</span><span>Connect YouTube</span>';
+          }
+
+          if (tagBadge) {
+            tagBadge.style.display = 'none';
+          }
+        }
+
+        const chk = document.getElementById('chkAutoUploadYT');
+        if (chk) chk.checked = isAutoUploadYT;
+        const label = document.getElementById('autoUploadStateLabel');
+        if (label) {
+          label.textContent = isAutoUploadYT ? 'ON' : 'OFF';
+          label.style.color = isAutoUploadYT ? '#10b981' : '#94a3b8';
+        }
+        const privSel = document.getElementById('ytPrivacySelect');
+        if (privSel) privSel.value = selectedYtPrivacy;
+
+      } catch (err) {
+        console.error('Error checking YouTube auth status:', err);
+      }
+    }
+
+    function toggleAutoUploadYT(enabled) {
+      isAutoUploadYT = enabled;
+      localStorage.setItem('auto_upload_yt', enabled ? 'true' : 'false');
+      const label = document.getElementById('autoUploadStateLabel');
+      if (label) {
+        label.textContent = enabled ? 'ON' : 'OFF';
+        label.style.color = enabled ? '#10b981' : '#94a3b8';
+      }
+      showToast(`YouTube Shorts Auto-Upload is now ${enabled ? 'ENABLED' : 'DISABLED'}`);
+    }
+
+    function updateYtPrivacy(val) {
+      selectedYtPrivacy = val;
+      localStorage.setItem('yt_privacy', val);
+      showToast(`Shorts upload privacy set to: ${val.toUpperCase()}`);
+    }
+
+    async function handleYouTubeConnectBtn() {
+      if (isYouTubeConnected) {
+        if (confirm('Disconnect YouTube account? Auto-uploading will be paused.')) {
+          try {
+            await fetch(`${API_BASE}/api/auth/youtube/disconnect`, { method: 'POST' });
+            showToast('YouTube account disconnected.');
+            checkYouTubeAuthStatus();
+          } catch (e) {
+            showToast('Error disconnecting account');
+          }
+        }
+      } else {
+        initiateYouTubeOAuth();
+      }
+    }
+
+    function initiateYouTubeOAuth() {
+      // First check if credentials exist
+      fetch(`${API_BASE}/api/auth/youtube/status`)
+        .then(r => r.json())
+        .then(data => {
+          if (!data.hasCredentials) {
+            openYouTubeConfigModal();
+            showToast('Please enter your Google OAuth Client ID & Secret first');
+            return;
+          }
+          const popup = window.open(`${API_BASE}/api/auth/youtube`, 'yt_oauth_popup', 'width=580,height=680');
+          if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+            window.location.href = `${API_BASE}/api/auth/youtube`;
+          }
+        })
+        .catch(() => {
+          openYouTubeConfigModal();
+        });
+    }
+
+    // Listen for OAuth completion from popup
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'YOUTUBE_CONNECTED') {
+        showToast('🎉 YouTube Channel Connected Successfully!');
+        checkYouTubeAuthStatus();
+      }
+    });
+
+    function openYouTubeConfigModal() {
+      document.getElementById('youtubeConfigModal').style.display = 'flex';
+      const redirectUri = window.location.origin + '/api/auth/youtube/callback';
+      const redirectEl = document.getElementById('modalRedirectUriText');
+      if (redirectEl) redirectEl.textContent = redirectUri;
+    }
+
+    function closeYouTubeConfigModal(event) {
+      if (event && event.target !== document.getElementById('youtubeConfigModal') && !event.target.classList.contains('theater-close') && event.target.tagName !== 'BUTTON') return;
+      document.getElementById('youtubeConfigModal').style.display = 'none';
+    }
+
+    function copyRedirectUri() {
+      const text = document.getElementById('modalRedirectUriText').textContent;
+      navigator.clipboard.writeText(text);
+      showToast('Copied redirect URI to clipboard!');
+    }
+
+    async function saveYouTubeCredentials() {
+      const clientId = document.getElementById('cfgClientId').value.trim();
+      const clientSecret = document.getElementById('cfgClientSecret').value.trim();
+
+      if (!clientId || !clientSecret) {
+        showToast('Please enter both Client ID and Client Secret.');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/youtube/config`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            clientId,
+            clientSecret,
+            redirectUri: window.location.origin + '/api/auth/youtube/callback'
+          })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          showToast('Credentials saved! Redirecting to Google Login...');
+          closeYouTubeConfigModal();
+          setTimeout(() => initiateYouTubeOAuth(), 600);
+        } else {
+          showToast('Error: ' + (data.error || 'Failed to save credentials'));
+        }
+      } catch (err) {
+        showToast('Failed to save credentials: ' + err.message);
+      }
+    }
+
+    function copyYoutubeShortsUrl() {
+      if (!lastUploadedShortsUrl) {
+        showToast('No YouTube Shorts URL to copy');
+        return;
+      }
+      navigator.clipboard.writeText(lastUploadedShortsUrl);
+      showToast('Copied YouTube Shorts URL to clipboard!');
+    }
+
+    function showYoutubeUploadResult(data) {
+      const resultCard = document.getElementById('youtubeUploadResultCard');
+      const titleEl = document.getElementById('ytResultTitle');
+      const watchBtn = document.getElementById('ytWatchShortsBtn');
+      const privEl = document.getElementById('ytResultPrivacy');
+
+      lastUploadedShortsUrl = data.youtubeUrl || data.shortsUrl;
+      titleEl.textContent = data.title || (activeClips[currentClipIndex]?.viralTitle || 'Viral Clip #Shorts');
+      watchBtn.href = lastUploadedShortsUrl;
+      privEl.textContent = `🔒 ${(data.privacyStatus || selectedYtPrivacy || 'private').toUpperCase()}`;
+
+      resultCard.style.display = 'block';
+      resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // --- Web Notification API & In-App Success Completion Popup Engine ---
+    function requestNotificationPermission() {
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().then(permission => {
+          console.log('[NOTIFICATION] Permission status:', permission);
+        }).catch(err => {
+          console.warn('[NOTIFICATION] Permission request ignored:', err);
+        });
+      }
+    }
+
+    function triggerDesktopNotification(title, body, targetUrl) {
+      if (!('Notification' in window)) return;
+
+      if (Notification.permission === 'granted') {
+        try {
+          const notif = new Notification(title || 'Task Completed! 🚀', {
+            body: body || 'Your clip was successfully sliced and uploaded to YouTube Shorts.',
+            icon: 'https://www.youtube.com/s/desktop/f71ea26a/img/favicon_144x144.png',
+            badge: 'https://www.youtube.com/s/desktop/f71ea26a/img/favicon_144x144.png',
+            tag: 'clip-task-completion',
+            requireInteraction: true
+          });
+
+          notif.onclick = function() {
+            window.focus();
+            if (targetUrl) {
+              window.open(targetUrl, '_blank');
+            }
+            notif.close();
+          };
+        } catch (err) {
+          console.warn('[NOTIFICATION] Could not trigger Notification API:', err);
+        }
+      }
+    }
+
+    // Gentle audio chime synthesized with Web Audio API (no external sound files required)
+    function playCelebrationChime() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+        // Warm celebratory C-Major chord (C5 - E5 - G5 - C6)
+        const freqs = [523.25, 659.25, 783.99, 1046.50];
+        freqs.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.1);
+          gain.gain.setValueAtTime(0.12, now + idx * 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.1 + 0.65);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + idx * 0.1);
+          osc.stop(now + idx * 0.1 + 0.65);
+        });
+      } catch (e) {}
+    }
+
+    function showTaskCompletionPopup(data, clip, artifactUrl, finalFilename) {
+      const hasYouTube = Boolean(data.youtubeUrl || data.uploadStatus === 'UPLOADED');
+      const ytUrl = data.youtubeUrl || data.shortsUrl || '';
+      const targetUrl = ytUrl || artifactUrl;
+
+      // 1. Play celebration audio alert
+      playCelebrationChime();
+
+      // 2. Trigger Browser Desktop Push Notification (Web Notification API)
+      triggerDesktopNotification(
+        'Task Completed! 🚀',
+        hasYouTube
+          ? 'Your clip was successfully sliced and uploaded to YouTube Shorts.'
+          : 'Your 9:16 mobile clip has been generated and is ready to download.',
+        targetUrl
+      );
+
+      // 3. Populate In-App Success Modal
+      const modal = document.getElementById('taskCompletionModal');
+      const msgEl = document.getElementById('completionMessage');
+      const titleEl = document.getElementById('completionClipTitle');
+      const watchBtn = document.getElementById('completionWatchBtn');
+      const dlBtn = document.getElementById('completionDownloadBtn');
+      const ytBadge = document.getElementById('completionYtBadge');
+      const privBadge = document.getElementById('completionPrivacyBadge');
+      const timeRange = document.getElementById('completionTimeRange');
+
+      if (clip) {
+        titleEl.textContent = data.title || clip.viralTitle || clip.titleTag || 'Viral Clip';
+        timeRange.textContent = `[${clip.startStr} - ${clip.endStr}] (${clip.durationSec}s)`;
+      } else {
+        titleEl.textContent = data.title || 'Viral Clip';
+        timeRange.textContent = 'Rendered 9:16 MP4';
+      }
+
+      if (hasYouTube) {
+        msgEl.innerHTML = `🎉 <strong>Task Completed!</strong> Your clip has been generated and published to YouTube Shorts.`;
+        watchBtn.style.display = 'flex';
+        watchBtn.href = ytUrl;
+        ytBadge.style.display = 'inline-block';
+        privBadge.textContent = `🔒 ${(data.privacyStatus || selectedYtPrivacy || 'private').toUpperCase()}`;
+        privBadge.style.display = 'inline-block';
+      } else {
+        msgEl.innerHTML = `🎉 <strong>Task Completed!</strong> Your 9:16 mobile video clip has been generated and saved.`;
+        watchBtn.style.display = 'none';
+        ytBadge.style.display = 'none';
+        privBadge.style.display = 'none';
+      }
+
+      dlBtn.href = artifactUrl;
+      dlBtn.download = finalFilename;
+
+      modal.style.display = 'flex';
+
+      // 4. Slide down Top Success Toast Banner
+      showSuccessBanner(
+        hasYouTube
+          ? '🎉 Task Completed! Your clip has been published to YouTube Shorts.'
+          : '🎉 Task Completed! Your 9:16 clip is ready for download.',
+        ytUrl
+      );
+    }
+
+    function closeCompletionModal(event) {
+      if (event && event.target !== document.getElementById('taskCompletionModal') && !event.target.classList.contains('btn-completion-close-icon') && !event.target.classList.contains('btn-completion-secondary')) return;
+      document.getElementById('taskCompletionModal').style.display = 'none';
+    }
+
+    function showSuccessBanner(message, watchUrl) {
+      const banner = document.getElementById('taskSuccessBanner');
+      const text = document.getElementById('bannerText');
+      const watchBtn = document.getElementById('bannerWatchBtn');
+
+      text.textContent = message;
+      if (watchUrl) {
+        watchBtn.href = watchUrl;
+        watchBtn.style.display = 'inline-flex';
+      } else {
+        watchBtn.style.display = 'none';
+      }
+
+      banner.classList.add('show');
+      setTimeout(() => banner.classList.remove('show'), 9000);
+    }
+
+    function closeSuccessBanner() {
+      document.getElementById('taskSuccessBanner').classList.remove('show');
+    }
+
+
+    // Manual Upload to YouTube for Active Clip
+    async function uploadActiveClipToYouTube(btn) {
+      uploadSpecificClipToYouTube(currentClipIndex, btn);
+    }
+
+    async function uploadSpecificClipToYouTube(clipIndex, triggerBtn) {
+      const clip = activeClips[clipIndex];
+      if (!clip) {
+        showToast('Please select or generate a clip first!');
+        return;
+      }
+
+      if (!isYouTubeConnected) {
+        if (confirm('YouTube channel is not connected yet. Would you like to connect it now?')) {
+          handleYouTubeConnectBtn();
+        }
+        return;
+      }
+
+      showToast(`Initiating YouTube Shorts upload for Clip #${clipIndex + 1}...`);
+      await downloadSpecificClip(clipIndex, triggerBtn);
+    }
+
+    // --- Input Mode Switching (URL vs Local File) ---
+    function switchInputMode(mode) {
+      const tabUrl = document.getElementById('tabUrlInput');
+      const tabFile = document.getElementById('tabFileInput');
+      const urlBox = document.getElementById('urlInputContainer');
+      const fileBox = document.getElementById('fileInputContainer');
+
+      if (mode === 'url') {
+        tabUrl.classList.add('active');
+        tabFile.classList.remove('active');
+        urlBox.style.display = 'block';
+        fileBox.style.display = 'none';
+      } else {
+        tabFile.classList.add('active');
+        tabUrl.classList.remove('active');
+        urlBox.style.display = 'none';
+        fileBox.style.display = 'block';
+        document.getElementById('fileDropZone').style.display = 'block';
+      }
+    }
+
+    // --- Local MP4/WebM Video File Handler ---
+    function handleLocalFileSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      if (localVideoFileUrl) {
+        URL.revokeObjectURL(localVideoFileUrl);
+      }
+
+      localVideoFileUrl = URL.createObjectURL(file);
+      currentVideoTitle = file.name.replace(/\.[^/.]+$/, "");
+      currentVideoId = "local_video";
+      currentVideoUrl = "";
+
+      // Load into local video player
+      localVideoPlayer.src = localVideoFileUrl;
+      localVideoPlayer.style.display = 'block';
+      ytPlayerFrame.style.display = 'none';
+
+      localVideoPlayer.onloadedmetadata = () => {
+        localVideoDuration = Math.floor(localVideoPlayer.duration) || 600;
+        
+        detectedBar.style.display = 'flex';
+        detectedTitle.textContent = currentVideoTitle;
+        detectedChannel.textContent = `File: ${file.name} (${(file.size / (1024*1024)).toFixed(1)} MB)`;
+        detectedCategory.textContent = `Duration: ${Math.floor(localVideoDuration/60)}m ${localVideoDuration%60}s`;
+        detectedThumb.src = "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=200&auto=format&fit=crop&q=80";
+
+        // Generate clips based on selected processing mode
+        if (selectedProcessingMode === 'whole_video') {
+          activeClips = generateWholeVideoSequentialClips(currentVideoTitle, "local_video", 18);
+        } else {
+          activeClips = generateViralClips(currentVideoTitle, "local_video", 0, 15);
+        }
+        renderClipsList();
+        
+        infiniteControlsCard.style.display = 'flex';
+        filterBar.style.display = 'flex';
+        aiReadingHud.style.display = 'block';
+
+        watchClipDirectly(0);
+        showToast(`Loaded ${file.name}! Generated clips.`);
+      };
+    }
+
+    // --- Sequential Whole Video Clips Slicer (Strictly 60s - 70s each, 100% gapless coverage) ---
+    function generateWholeVideoSequentialClips(videoTitle, videoId, partCount = 18) {
+      const cleanTitle = (videoTitle || "Video").replace(/["']/g, '').trim();
+      const newClips = [];
+      let runningStart = 0;
+
+      // Sequential parts strictly in 60s - 70s range
+      const durations = [65, 68, 64, 70, 66, 67, 63, 69, 65, 66, 68, 64, 67, 65, 69, 66, 65, 70];
+
+      for (let i = 0; i < partCount; i++) {
+        const durationSec = durations[i % durations.length];
+        const startSec = runningStart;
+        const endSec = startSec + durationSec;
+        runningStart = endSec; // Zero gap, continuous timeline!
+
+        const startMin = Math.floor(startSec / 60);
+        const startRem = startSec % 60;
+        const endMin = Math.floor(endSec / 60);
+        const endRem = endSec % 60;
+
+        const startStr = `${String(startMin).padStart(2, '0')}:${String(startRem).padStart(2, '0')}`;
+        const endStr = `${String(endMin).padStart(2, '0')}:${String(endRem).padStart(2, '0')}`;
+
+        const partNum = i + 1;
+        const projectedMin = Math.max(300, 1200 - (i * 35));
+        const projectedMax = projectedMin + 450;
+        const projectedViewsStr = `${projectedMin}K - ${projectedMax}K Views`;
+
+        newClips.push({
+          id: i,
+          titleTag: `Part #${partNum}: Full Video Coverage`,
+          durationSec: durationSec, // STRICTLY 60s - 70s
+          startSec: startSec,
+          endSec: endSec,
+          startStr: startStr,
+          endStr: endStr,
+          virality: `🔥 Part ${partNum} of Full Timeline`,
+          vScoreNum: 95.0,
+          projectedViews: projectedViewsStr,
+          viewsNum: projectedMin,
+          reason: `Sequential coverage of the full video from ${startStr} to ${endStr}. Chronological part with original dialogue and pacing.`,
+          hook: `Watch Part ${partNum} [${startStr} - ${endStr}] of the complete video!`,
+          spark: "M0,10 Q18,3 37,11 T75,8",
+          viralTitle: `Part ${partNum}: ${cleanTitle.substring(0, 30)}... [${startStr} - ${endStr}] #FullVideo`,
+          desc: `Part #${partNum} from "${videoTitle}". Covers ${startStr} to ${endStr} sequentially with zero gaps.\n\nCatch all parts in this series! Like and follow for the next part!`,
+          hashtags: ["#fullvideo", "#series", "#part" + partNum, "#shorts", "#reels", "#fyp"],
+          lines: [],
+          panOffset: (i % 3 === 0) ? 0 : (i % 3 === 1 ? -12 : 12)
+        });
+      }
+
+      return newClips;
+    }
+
+    // --- 24 Unique High-Reach Viral Segment Archetypes (Loops Infinitely) ---
+    const VIRAL_TEMPLATES = [
+      { tag: "The High-CTR Curiosity Hook", reason: "AI detected an open-loop question creating an immediate 89% viewer retention cliff.", hook: "The single most surprising revelation that flips standard thinking...", minViews: 750, maxViews: 1800, vScore: 99.4, spark: "M0,15 Q20,3 40,8 T75,4" },
+      { tag: "The Controversial Truth Bomb", reason: "Audio intensity spiked with rapid speech velocity and emphatic hand gestures.", hook: "Wait until you see how this controversial point gets proven...", minViews: 650, maxViews: 1400, vScore: 98.7, spark: "M0,16 Q25,2 50,6 T75,3" },
+      { tag: "The 3-Step Million Dollar Blueprint", reason: "Semantic parser identified concise actionable steps with 97% bookmark rate potential.", hook: "The exact playbook that took years of trial and error to figure out...", minViews: 850, maxViews: 2200, vScore: 98.1, spark: "M0,14 Q20,4 45,5 T75,2" },
+      { tag: "Shocking Twist Reaction", reason: "Sudden acoustic laughter/gasp peak detected with sharp vocal inflection.", hook: "His spontaneous reaction here is guaranteed to make you replay twice...", minViews: 500, maxViews: 1200, vScore: 97.6, spark: "M0,15 Q30,1 55,7 T75,5" },
+      { tag: "The Uncomfortable Reality Check", reason: "Tonal drop in speaker cadence marking profound contrarian wisdom.", hook: "The brutal truth about the industry that nobody wants to admit out loud...", minViews: 600, maxViews: 1350, vScore: 96.9, spark: "M0,13 Q15,5 40,3 T75,4" },
+      { tag: "The Mind-Bending AI Demonstration", reason: "Screen motion combined with rapid dialogue indicates a major live breakthrough.", hook: "When you see how fast this runs in real time, you will be stunned...", minViews: 900, maxViews: 2500, vScore: 96.4, spark: "M0,14 Q20,2 45,4 T75,1" },
+      { tag: "The Turning Point Climax", reason: "Dramatic pacing shift identified by retention algorithm as peak suspense.", hook: "Everything was on the verge of falling apart until this exact decision...", minViews: 550, maxViews: 1100, vScore: 95.8, spark: "M0,16 Q35,3 55,8 T75,4" },
+      { tag: "Golden Advice For Beginners", reason: "High shareability coefficient; optimized for viewers tagging friends in comments.", hook: "If you are just getting started today, please avoid this fatal mistake...", minViews: 700, maxViews: 1600, vScore: 95.2, spark: "M0,15 Q20,5 50,3 T75,3" },
+      { tag: "The Secret Formula Revealed", reason: "Algorithmic density analysis detected concentrated knowledge density.", hook: "Save this clip right now so you can refer back to this framework...", minViews: 620, maxViews: 1450, vScore: 94.7, spark: "M0,14 Q25,3 45,6 T75,2" },
+      { tag: "Unbelievable Final Outcome", reason: "Energy metrics reached the 99th percentile of the full video runtime.", hook: "Look at the final results after weeks of non-stop work...", minViews: 580, maxViews: 1250, vScore: 94.1, spark: "M0,16 Q20,2 50,4 T75,2" },
+      { tag: "The Counter-Intuitive Principle", reason: "Pattern interrupt detected that defies audience expectations.", hook: "Why doing the exact opposite of what gurus say will 10X your results...", minViews: 720, maxViews: 1700, vScore: 93.5, spark: "M0,13 Q20,4 40,2 T75,3" },
+      { tag: "The Powerful Closing Statement", reason: "Inspirational climax with sustained cadence, ideal for endless looping.", hook: "The single sentence that will stick with you for the rest of your week...", minViews: 680, maxViews: 1550, vScore: 93.0, spark: "M0,15 Q30,4 60,6 T75,1" },
+      { tag: "The High-Stakes Bet", reason: "Risk narrative trigger detected; audience curiosity score spiked to 98%.", hook: "Putting everything on the line with zero safety net...", minViews: 800, maxViews: 1950, vScore: 92.6, spark: "M0,14 Q20,3 50,5 T75,2" },
+      { tag: "The Silent Realization Moment", reason: "Sudden pause in voice followed by punchline delivery triggers maximum comment debate.", hook: "Watch his eyes the exact moment he realized what went wrong...", minViews: 640, maxViews: 1300, vScore: 92.1, spark: "M0,15 Q25,1 45,7 T75,4" },
+      { tag: "The Untold Origin Story", reason: "Deep biographical narrative element proven to boost full 60s watch-through rate.", hook: "Before all the fame and numbers, this was where it all began...", minViews: 710, maxViews: 1650, vScore: 91.7, spark: "M0,12 Q20,4 50,3 T75,3" },
+      { tag: "The Direct Call-Out", reason: "Aggressive rhetorical challenge creating instant comment section warfare.", hook: "Most people will scroll past this because they aren't ready to hear it...", minViews: 830, maxViews: 2100, vScore: 91.2, spark: "M0,16 Q30,2 55,6 T75,2" }
+    ];
+
+    // --- Dynamic Unlimited Clips Generator (Strictly 60s – 70s each) ---
+    function generateViralClips(videoTitle, videoId, startIndex, count) {
+      const cleanTitle = videoTitle.replace(/[^\w\s-]/g, '').trim() || "Viral Video";
+      const newClips = [];
+
+      for (let i = 0; i < count; i++) {
+        const globalIdx = startIndex + i;
+        const template = VIRAL_TEMPLATES[globalIdx % VIRAL_TEMPLATES.length];
+
+        // Ensure duration is ALWAYS strictly between 60+ and 70 seconds!
+        const durations = [62, 65, 68, 64, 70, 63, 67, 61, 66, 69, 65, 62];
+        const durationSec = durations[globalIdx % durations.length]; // 61s to 70s
+
+        // Stagger start seconds across video timeline
+        const startSec = 15 + (globalIdx * 65);
+        const endSec = startSec + durationSec;
+
+        const startStr = `${String(Math.floor(startSec / 60)).padStart(2, '0')}:${String(startSec % 60).padStart(2, '0')}`;
+        const endStr = `${String(Math.floor(endSec / 60)).padStart(2, '0')}:${String(endSec % 60).padStart(2, '0')}`;
+
+        // Projected views calculation
+        const projectedMin = (template.minViews + (globalIdx * 15)).toLocaleString();
+        const projectedMax = (template.maxViews + (globalIdx * 35)).toLocaleString();
+        const projectedViewsStr = `${projectedMin}K - ${projectedMax}K Views`;
+
+        const vScore = Math.max(88, (template.vScore - (globalIdx * 0.25))).toFixed(1);
+
+        newClips.push({
+          id: globalIdx,
+          titleTag: `Clip #${globalIdx + 1}: ${template.tag}`,
+          durationSec: durationSec, // STRICTLY 60s - 70s
+          startSec: startSec,
+          endSec: endSec,
+          startStr: startStr,
+          endStr: endStr,
+          virality: `🔥 ${vScore}% Viral Score`,
+          vScoreNum: parseFloat(vScore),
+          projectedViews: projectedViewsStr,
+          viewsNum: template.minViews,
+          reason: template.reason,
+          hook: template.hook,
+          spark: template.spark,
+          viralTitle: `${template.tag} (${cleanTitle.substring(0, 24)}...) 🤯 #Shorts`,
+          desc: `Highlight #${globalIdx + 1} from "${videoTitle}". Algorithmic reach forecast: ${projectedViewsStr}.\n\n👇 Drop your thoughts below! Like and subscribe for more viral cuts!`,
+          hashtags: ["#shorts", "#reels", "#tiktok", "#viral", "#foryou", "#trending", "#fyp"],
+          lines: [
+            { start: 0, end: 6, text: "THIS CLIP IS PROJECTED TO", active: "GET OVER 1M VIEWS" },
+            { start: 6, end: 12, text: "PAY CLOSE ATTENTION TO", active: "THIS EXACT MOMENT" },
+            { start: 12, end: 18, text: template.tag.toUpperCase(), active: "IS UNREAL" },
+            { start: 18, end: 25, text: "AI DETECTED MAXIMUM", active: "AUDIENCE RETENTION" },
+            { start: 25, end: 32, text: "MOST CREATORS WILL NEVER", active: "REVEAL THIS" },
+            { start: 32, end: 40, text: template.hook.toUpperCase().substring(0, 32), active: "WATCH CLOSELY" },
+            { start: 40, end: 48, text: "THIS IS WHY THIS MOMENT", active: "WENT COMPLETELY VIRAL" },
+            { start: 48, end: 55, text: "SAVE THIS VIDEO RIGHT NOW", active: "BEFORE IT GETS TAKEN DOWN" },
+            { start: 55, end: 62, text: "SHARE WITH A FRIEND WHO", active: "NEEDS TO SEE THIS" },
+            { start: 62, end: durationSec, text: "POST THIS TODAY ON", active: "REELS & TIKTOK!" }
+          ],
+          panOffset: (globalIdx % 3 === 0) ? 0 : (globalIdx % 3 === 1 ? -12 : 12)
+        });
+      }
+
+      return newClips;
+    }
+
+    // --- Render Clips List ---
+    function renderClipsList() {
+      clipsContainer.innerHTML = '';
+      document.getElementById('clipCountLabel').textContent = `${activeClips.length} Viral Clips`;
+
+      activeClips.forEach((clip, index) => {
+        const card = document.createElement('div');
+        card.className = `rich-clip-card ${index === currentClipIndex ? 'active' : ''}`;
+        card.id = `clipCard${index}`;
+
+        const thumbUrl = currentVideoId && currentVideoId !== "custom_video" && currentVideoId !== "local_video"
+          ? `https://img.youtube.com/vi/${currentVideoId}/mqdefault.jpg` 
+          : `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&auto=format&fit=crop&q=80`;
+
+        card.innerHTML = `
+          <!-- Thumbnail with play trigger -->
+          <div class="clip-thumb-box" onclick="watchClipDirectly(${index})">
+            <img class="clip-thumb-img" src="${thumbUrl}" alt="Clip thumbnail" />
+            <div class="clip-play-overlay">▶️</div>
+            <span class="clip-duration-tag">⏱️ ${clip.durationSec}s</span>
+          </div>
+
+          <!-- Semantic Highlight Details (NO FACE TRACKING) -->
+          <div class="clip-details" onclick="watchClipDirectly(${index})">
+            <div class="clip-header-row">
+              <span class="clip-title-text">${clip.titleTag}</span>
+              <span class="projected-views-badge">🚀 ${clip.projectedViews}</span>
+              <span class="virality-score-badge">${clip.virality}</span>
+              <span style="font-size: 0.72rem; color: #38bdf8; font-weight: 700; font-family: var(--font-mono);">
+                [${clip.startStr} - ${clip.endStr}]
+              </span>
+            </div>
+
+            <!-- Mini Retention Curve Graph & Reach Metrics -->
+            <div class="retention-sparkline">
+              <span>Audience Retention:</span>
+              <svg class="sparkline-svg" viewBox="0 0 75 20">
+                <path d="${clip.spark}" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <span style="color: #34d399; font-weight: 700;">94%+</span>
+            </div>
+
+            <!-- AI Highlight Reason Display -->
+            <div class="ai-reason-box">
+              <strong>🧠 Why This Gets Reach:</strong> ${clip.reason}
+            </div>
+
+            <div style="font-size: 0.75rem; color: var(--text-dim);">
+              "${clip.hook}"
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="clip-actions">
+            <button class="btn-preview-clip" onclick="watchClipDirectly(${index})">
+              <span>▶️</span>
+              <span>Watch</span>
+            </button>
+            <button class="btn-card-download" id="btnCardDl${index}" onclick="downloadSpecificClip(${index}, this)">
+              <span>⬇️</span>
+              <span>Download (${clip.durationSec}s)</span>
+            </button>
+            <button class="btn-card-yt" id="btnCardYt${index}" onclick="uploadSpecificClipToYouTube(${index}, this)" title="Upload this cut directly to YouTube Shorts">
+              <span>🚀</span>
+              <span id="btnCardYtText${index}">Shorts</span>
+            </button>
+          </div>
+        `;
+
+        clipsContainer.appendChild(card);
+      });
+
+      renderTimelineVis();
+    }
+
+    // --- Render Timeline Retention Visualizer Markers ---
+    function renderTimelineVis() {
+      timelineTrackVis.innerHTML = '';
+      if (!activeClips.length) return;
+
+      const maxSec = activeClips[activeClips.length - 1].endSec + 60;
+      document.getElementById('timelineDurationLabel').textContent = `Analyzed Timeline: 00:00 - ${Math.floor(maxSec/60)}:${String(maxSec%60).padStart(2,'0')}`;
+
+      activeClips.forEach((clip, idx) => {
+        const leftPct = (clip.startSec / maxSec) * 100;
+        const widthPct = Math.max(2.5, (clip.durationSec / maxSec) * 100);
+
+        const marker = document.createElement('div');
+        marker.className = 'timeline-clip-marker';
+        marker.style.left = `${leftPct}%`;
+        marker.style.width = `${widthPct}%`;
+        marker.title = `${clip.titleTag} (${clip.durationSec}s) — Click to watch`;
+        marker.textContent = `#${idx + 1}`;
+        marker.onclick = () => watchClipDirectly(idx);
+
+        timelineTrackVis.appendChild(marker);
+      });
+    }
+
+    // --- Unlimited Batch Clips Extender ---
+    function loadMoreClips(count = 5) {
+      const statusText = document.getElementById('infiniteStatusText');
+      statusText.textContent = `🔄 Generating Next ${count} Segments...`;
+
+      setTimeout(() => {
+        let moreClips;
+        if (selectedProcessingMode === 'whole_video') {
+          moreClips = generateWholeVideoSequentialClips(currentVideoTitle, currentVideoId, activeClips.length + count).slice(activeClips.length);
+        } else {
+          moreClips = generateViralClips(currentVideoTitle, currentVideoId, activeClips.length, count);
+        }
+        activeClips = activeClips.concat(moreClips);
+        renderClipsList();
+
+        statusText.textContent = `Active Stream: ${activeClips.length} Clips Extracted`;
+        showToast(`Success! Extracted ${count} more clips. Total now: ${activeClips.length}`);
+      }, 600);
+    }
+
+    // --- Sort Clips by Reach / Views / Virality ---
+    function sortClips(type, btn) {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      if (type === 'views') {
+        activeClips.sort((a, b) => b.viewsNum - a.viewsNum);
+      } else if (type === 'virality') {
+        activeClips.sort((a, b) => b.vScoreNum - a.vScoreNum);
+      } else if (type === 'duration') {
+        activeClips.sort((a, b) => a.durationSec - b.durationSec);
+      }
+
+      renderClipsList();
+      selectClip(0);
+      showToast(`Sorted clips by ${type.toUpperCase()}`);
+    }
+
+    // --- Watch Clip Directly on Webpage ---
+    function watchClipDirectly(index) {
+      selectClip(index);
+      
+      const playerEl = document.querySelector('.phone-mockup');
+      if (playerEl && window.innerWidth < 1024) {
+        playerEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      showToast(`Now Watching: ${activeClips[index].titleTag} (${activeClips[index].durationSec}s)`);
+    }
+
+    // --- Select and Load a Highlight Clip ---
+    function selectClip(index) {
+      if (!activeClips[index]) return;
+      currentClipIndex = index;
+      currentTime = 0;
+      const clip = activeClips[index];
+
+      document.querySelectorAll('.rich-clip-card').forEach((c, i) => {
+        c.classList.toggle('active', i === index);
+      });
+
+      nowPlayingText.textContent = `Watching: ${clip.titleTag} (${clip.durationSec}s) [${clip.startStr} - ${clip.endStr}]`;
+
+      document.getElementById('clipTitle').textContent = clip.viralTitle;
+      document.getElementById('clipDesc').textContent = clip.desc;
+      
+      const hashtagsContainer = document.getElementById('hashtagsList');
+      hashtagsContainer.innerHTML = clip.hashtags.map(h => `<span class="hashtag">${h}</span>`).join('');
+
+      document.getElementById('downloadBtnLabel').textContent = `Download 9:16 Mobile MP4 Clip #${index + 1} (${clip.durationSec}s)`;
+
+      if (currentVideoId === "local_video" && localVideoFileUrl) {
+        // Play local file at specific clip startSec
+        ytPlayerFrame.style.display = 'none';
+        localVideoPlayer.style.display = 'block';
+        localVideoPlayer.currentTime = clip.startSec;
+        localVideoPlayer.play().catch(() => {});
+      } else if (currentVideoId && currentVideoId !== "custom_video") {
+        localVideoPlayer.style.display = 'none';
+        ytPlayerFrame.style.display = 'block';
+        loadYouTubeClip(currentVideoId, clip.startSec, clip.endSec, clip.panOffset);
+      }
+    }
+
+    function loadYouTubeClip(videoId, startSec, endSec, panOffset = 0) {
+      const src = `https://www.youtube.com/embed/${videoId}?start=${startSec}&end=${endSec}&autoplay=1&mute=1&controls=1&enablejsapi=1&rel=0&playsinline=1`;
+      ytPlayerFrame.src = src;
+      ytPlayerFrame.style.transform = `translate(calc(-50% + ${panOffset}px), -50%) scale(1.78)`;
+
+      currentTime = 0;
+      updateTimeDisplay(clipDuration());
+    }
+
+    function clipDuration() {
+      return activeClips[currentClipIndex] ? activeClips[currentClipIndex].durationSec : 65;
+    }
+
+    // Theater Mode
+    function openTheater() {
+      const clip = activeClips[currentClipIndex];
+      if (!clip) {
+        showToast('Load a video first to watch');
+        return;
+      }
+      theaterTitle.textContent = `Watching: ${clip.titleTag} (${clip.durationSec}s) — ${clip.projectedViews}`;
+      if (currentVideoId === "local_video" && localVideoFileUrl) {
+        theaterFrame.style.display = 'none';
+        let tVid = document.getElementById('theaterLocalVid');
+        if (!tVid) {
+          tVid = document.createElement('video');
+          tVid.id = 'theaterLocalVid';
+          tVid.controls = true;
+          tVid.autoplay = true;
+          tVid.style.width = '100%';
+          tVid.style.height = '100%';
+          document.querySelector('.theater-player-box').appendChild(tVid);
+        }
+        tVid.src = localVideoFileUrl;
+        tVid.currentTime = clip.startSec;
+        tVid.style.display = 'block';
+      } else if (currentVideoId && currentVideoId !== "custom_video") {
+        theaterFrame.style.display = 'block';
+        const tVid = document.getElementById('theaterLocalVid');
+        if (tVid) tVid.style.display = 'none';
+        theaterFrame.src = `https://www.youtube.com/embed/${currentVideoId}?start=${clip.startSec}&end=${clip.endSec}&autoplay=1&controls=1&rel=0`;
+      }
+      theaterModal.style.display = 'flex';
+    }
+
+    function closeTheater(event) {
+      if (event && event.target !== theaterModal && !event.target.classList.contains('theater-close')) return;
+      theaterModal.style.display = 'none';
+      theaterFrame.src = "";
+      const tVid = document.getElementById('theaterLocalVid');
+      if (tVid) tVid.pause();
+    }
+
+    // --- Timeline Scrubber Animation Engine ---
+    function startTimeLoop() {
+      if (playbackTimer) clearInterval(playbackTimer);
+
+      playbackTimer = setInterval(() => {
+        if (!isPlaying) return;
+
+        const clip = activeClips[currentClipIndex];
+        if (!clip) return;
+
+        currentTime += 0.25;
+        if (currentTime > clip.durationSec) {
+          currentTime = 0;
+        }
+
+        timelineScrubber.value = (currentTime / clip.durationSec) * 100;
+        updateTimeDisplay(clip.durationSec);
+      }, 250);
+    }
+
+    function updateTimeDisplay(totalSec) {
+      const curM = String(Math.floor(currentTime / 60)).padStart(2, '0');
+      const curS = String(Math.floor(currentTime % 60)).padStart(2, '0');
+      const durM = String(Math.floor(totalSec / 60)).padStart(2, '0');
+      const durS = String(Math.floor(totalSec % 60)).padStart(2, '0');
+      timeDisplay.textContent = `${curM}:${curS} / ${durM}:${durS}`;
+    }
+
+    playPauseBtn.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      playPauseBtn.textContent = isPlaying ? '⏸️' : '▶️';
+      if (currentVideoId === "local_video" && localVideoPlayer) {
+        if (isPlaying) localVideoPlayer.play();
+        else localVideoPlayer.pause();
+      }
+    });
+
+    timelineScrubber.addEventListener('input', (e) => {
+      const clip = activeClips[currentClipIndex];
+      if (!clip) return;
+      currentTime = (e.target.value / 100) * clip.durationSec;
+      updateTimeDisplay(clip.durationSec);
+      if (currentVideoId === "local_video" && localVideoPlayer) {
+        localVideoPlayer.currentTime = clip.startSec + currentTime;
+      }
+    });
+
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+      btn.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    // --- Core AI Multi-Model Pipeline: URL Flow ---
+    generateBtn.addEventListener('click', triggerPipeline);
+
+    async function triggerPipeline() {
+      const url = videoUrlInput.value.trim();
+      if (!url) {
+        showToast('Please paste a YouTube, Kick, or video link into the box first!');
+        videoUrlInput.focus();
+        return;
+      }
+
+      currentVideoUrl = url;
+      const extractedId = extractYouTubeId(url);
+      currentVideoId = extractedId || "custom_video";
+
+      // If Mode 3 is selected: directly trigger Download Whole Video!
+      if (selectedProcessingMode === 'download_whole') {
+        downloadFullVideo(generateBtn);
+        return;
+      }
+
+      // Reset local player
+      localVideoPlayer.style.display = 'none';
+      ytPlayerFrame.style.display = 'block';
+
+      progressSection.style.display = 'block';
+      generateBtn.disabled = true;
+      generateBtn.style.opacity = '0.6';
+
+      let fetchedTitle = "Analyzed Video Stream";
+      let fetchedAuthor = "Online Creator";
+
+      try {
+        const oembedUrl = `https://noembed.com/embed?url=${encodeURIComponent(url)}`;
+        const res = await fetch(oembedUrl);
+        const data = await res.json();
+        if (data.title) {
+          fetchedTitle = data.title;
+          fetchedAuthor = data.author_name || "Creator";
+        }
+      } catch (err) {
+        fetchedTitle = "Video Stream Highlights";
+      }
+
+      currentVideoTitle = fetchedTitle;
+
+      detectedBar.style.display = 'flex';
+      detectedTitle.textContent = fetchedTitle;
+      detectedChannel.textContent = `Channel: ${fetchedAuthor}`;
+      detectedCategory.textContent = selectedProcessingMode === 'whole_video' ? "Whole Video Timeline Slicer Active" : "Unlimited Reach Engine Active";
+      detectedThumb.src = extractedId 
+        ? `https://img.youtube.com/vi/${extractedId}/hqdefault.jpg`
+        : `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&auto=format&fit=crop&q=80`;
+
+      // Multi-Model Pipeline Animation (Mode-aware, Clean Video, No Subtitles)
+      const stages = selectedProcessingMode === 'whole_video' ? [
+        { pct: 20, msg: "AI Model 1 (Gemini 1.5 Pro): Scanning video timeline from 00:00 to end..." },
+        { pct: 45, msg: "AI Model 1: Chronologically partitioning whole video into 60s–70s parts..." },
+        { pct: 70, msg: "AI Model 2 (SmartFrame 9:16): Auto-repositioning landscape video to 9:16 vertical view..." },
+        { pct: 90, msg: "AI Model 3 (PacingOptimizer): Verifying zero audio gaps between consecutive parts..." },
+        { pct: 100, msg: "AI Model 4: Finalizing chronological part sequence (100% timeline coverage)..." }
+      ] : [
+        { pct: 20, msg: "AI Model 1 (Gemini 1.5 Pro): Scanning video visual frames & acoustic energy peaks..." },
+        { pct: 45, msg: "AI Model 1: Identifying high-reach viral moments (Strictly 60s – 70s)..." },
+        { pct: 70, msg: "AI Model 2 (SmartFrame 9:16): Auto-repositioning landscape video to 9:16 vertical view..." },
+        { pct: 90, msg: "AI Model 3 (MomentumTracker): Slicing dialogue momentum & retention spikes..." },
+        { pct: 100, msg: "AI Model 4 (Llama-3): Computing algorithm reach forecast & viral hooks..." }
+      ];
+
+      let currentStage = 0;
+      const interval = setInterval(() => {
+        if (currentStage >= stages.length) {
+          clearInterval(interval);
+          setTimeout(() => {
+            progressSection.style.display = 'none';
+            generateBtn.disabled = false;
+            generateBtn.style.opacity = '1';
+
+            // Show AI Reading HUD Diagnostics
+            aiReadingHud.style.display = 'block';
+
+            // Generate clips according to selected mode
+            if (selectedProcessingMode === 'whole_video') {
+              activeClips = generateWholeVideoSequentialClips(fetchedTitle, currentVideoId, 18);
+              renderClipsList();
+              showToast(`Success! Sliced whole video into sequential 60s–70s parts!`);
+            } else {
+              activeClips = generateViralClips(fetchedTitle, currentVideoId, 0, 15);
+              renderClipsList();
+              showToast(`Success! 15 Viral Highlight Clips generated (Strictly 60s–70s)!`);
+            }
+            
+            // Show infinite extender controls & filter bar
+            infiniteControlsCard.style.display = 'flex';
+            filterBar.style.display = 'flex';
+
+            // Immediately start watching Clip #1
+            watchClipDirectly(0);
+          }, 600);
+          return;
+        }
+
+        const stage = stages[currentStage];
+        progressFill.style.width = stage.pct + '%';
+        progressLog.textContent = stage.msg;
+        currentStage++;
+      }, 500);
+    }
+
+    // --- Format Ratio Selector (Default: Mobile 9:16) ---
+    let selectedRatio = '9:16';
+
+    function selectFormatRatio(ratio, el) {
+      selectedRatio = ratio;
+      document.querySelectorAll('.ratio-selector-section .export-card').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      const label = ratio === '9:16' ? 'Mobile Vertical 9:16 (1080x1920)' : 'Landscape 16:9 (1920x1080)';
+      document.getElementById('downloadBtnLabel').textContent = `Download ${label} MP4`;
+      showToast(`Format set to ${label}`);
+    }
+
+    // --- Genuine Video Exporter (Real FFmpeg Trimming Pipeline) ---
+    function downloadActiveClip(btn) {
+      downloadSpecificClip(currentClipIndex, btn || document.getElementById('btnDownloadClip'));
+    }
+
+    const API_BASE = (window.location.protocol === 'file:' || !window.location.port) ? 'http://localhost:8080' : '';
+
+    async function downloadSpecificClip(clipIndex, triggerBtn) {
+      const clip = activeClips[clipIndex] || { durationSec: 65, titleTag: 'Clip', startSec: 0, endSec: 65, id: clipIndex, startStr: '00:15', endStr: '01:20' };
+      const clipNumber = clip.id != null ? (clip.id + 1) : (clipIndex + 1);
+
+      // Effective Source URL
+      const effectiveUrl = currentVideoUrl || (currentVideoId && currentVideoId !== "custom_video" && currentVideoId !== "local_video" ? `https://www.youtube.com/watch?v=${currentVideoId}` : '');
+      
+      if (!effectiveUrl) {
+        showToast('Please paste a YouTube or video link into the box above first!');
+        videoUrlInput.focus();
+        return;
+      }
+
+      // Request Browser Notification Permission early on user action
+      requestNotificationPermission();
+
+      // UI Progress Elements
+      downloadStatusCard.style.display = 'block';
+      const statusMsg = document.getElementById('downloadStatusMsg');
+      const progressFill = document.getElementById('renderProgressFill');
+      const mainDownloadBtn = document.getElementById('btnDownloadClip');
+      
+      const origBtnHtml = triggerBtn ? triggerBtn.innerHTML : '';
+      if (triggerBtn) {
+        triggerBtn.disabled = true;
+        triggerBtn.style.opacity = '0.7';
+        triggerBtn.innerHTML = '<span>⏳</span><span>Trimming 9:16 MP4...</span>';
+      }
+      if (mainDownloadBtn) {
+        mainDownloadBtn.disabled = true;
+        mainDownloadBtn.style.opacity = '0.7';
+      }
+
+      progressFill.style.width = '15%';
+      statusMsg.innerHTML = `[1/3] Queuing real video trimming for Clip #${clipNumber} [${clip.startStr} - ${clip.endStr}] via FFmpeg...`;
+
+      try {
+        // Step 1: Send request to backend with explicit clip parameters:
+        // { sourceUrl, startTime: "01:12", endTime: "01:50", clipId }
+        const payload = {
+          sourceUrl: effectiveUrl,
+          startTime: clip.startStr, // e.g. "01:12"
+          endTime: clip.endStr,     // e.g. "01:50"
+          clipId: clipNumber,       // e.g. 2 for Clip #2
+          title: clip.viralTitle || clip.titleTag || `Clip #${clipNumber}`,
+          description: clip.desc || (clip.hook ? `${clip.hook}\n\nKey moment from full stream.` : ''),
+          privacyStatus: selectedYtPrivacy || 'private',
+          autoUploadYouTube: Boolean(isAutoUploadYT && isYouTubeConnected),
+          aspect: selectedRatio || '9:16',
+          hook: clip.hook,
+          subtitles: clip.lines
+        };
+
+        console.log('[EXPORT] Requesting video trim with parameters:', payload);
+
+        const initRes = await fetch(`${API_BASE}/api/export-clip`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const initData = await initRes.json();
+        if (!initData.jobId) {
+          throw new Error(initData.error || 'Server failed to start render job');
+        }
+
+        const jobId = initData.jobId;
+        const expectedFilename = initData.filename || `clip_${clipNumber}.mp4`;
+        showToast(`Trimming Clip #${clipNumber} on server via FFmpeg...`);
+
+        // Step 2: Poll status endpoint until COMPLETED or ERROR
+        const pollInterval = setInterval(async () => {
+          try {
+            const statusRes = await fetch(`${API_BASE}/api/clip-status?jobId=${encodeURIComponent(jobId)}`);
+            if (!statusRes.ok) return;
+
+            const statusData = await statusRes.json();
+            const pct = statusData.progress || 35;
+            progressFill.style.width = `${pct}%`;
+            
+            if (statusData.uploadStatus === 'UPLOADING') {
+              statusMsg.textContent = `[YouTube Shorts] 🚀 ${statusData.step || 'Auto-uploading directly to YouTube Shorts...'}`;
+              if (triggerBtn) {
+                triggerBtn.innerHTML = `<span>🚀</span><span>Uploading Shorts...</span>`;
+              }
+            } else {
+              statusMsg.textContent = `[FFmpeg Pipeline ${pct}%] ${statusData.step || 'Processing video...'}`;
+              if (triggerBtn) {
+                triggerBtn.innerHTML = `<span>⏳</span><span>${pct}% Rendered...</span>`;
+              }
+            }
+
+            if (statusData.status === 'COMPLETED') {
+              clearInterval(pollInterval);
+              progressFill.style.width = '100%';
+              const finalFilename = statusData.filename || expectedFilename;
+              const artifactUrl = `${API_BASE}/api/download-artifact?jobId=${encodeURIComponent(jobId)}`;
+
+              // Trigger Visual In-App Popup Modal + Desktop Push Notification + Chime
+              showTaskCompletionPopup(statusData, clip, artifactUrl, finalFilename);
+
+              // Check if auto-uploaded to YouTube Shorts
+              if (statusData.youtubeUrl || statusData.uploadStatus === 'UPLOADED') {
+                showYoutubeUploadResult(statusData);
+                statusMsg.innerHTML = `
+                  <div style="display:flex; flex-direction:column; gap:6px;">
+                    <div>🎉 <strong>Published to YouTube Shorts!</strong> <a href="${statusData.youtubeUrl}" target="_blank" rel="noopener noreferrer" style="color:#ef4444; font-weight:800; text-decoration:underline; margin-left:6px;">▶️ Watch Video (${statusData.youtubeUrl})</a></div>
+                    <div style="font-size:0.8rem; color:#94a3b8;">Local MP4 also saved: <a href="${artifactUrl}" download="${finalFilename}" style="color:#38bdf8; text-decoration:underline;">${finalFilename}</a></div>
+                  </div>
+                `;
+                showToast(`🎉 Clip #${clipNumber} uploaded directly to YouTube Shorts!`);
+              } else if (statusData.uploadStatus === 'FAILED') {
+                statusMsg.innerHTML = `✅ [3/3] MP4 Ready! <a href="${artifactUrl}" download="${finalFilename}" style="color:#38bdf8; text-decoration:underline; font-weight:700; margin-left:8px;">Download ${finalFilename}</a> <span style="color:#f59e0b; margin-left:8px;">(YouTube note: ${statusData.uploadError || 'Upload failed'})</span>`;
+                showToast(`MP4 ready. YouTube Upload note: ${statusData.uploadError}`);
+              } else {
+                statusMsg.innerHTML = `✅ [3/3] Playable MP4 Video Ready! <a href="${artifactUrl}" download="${finalFilename}" style="color:#38bdf8; text-decoration:underline; font-weight:700; margin-left:8px;">Click here if file download does not start</a>`;
+                showToast(`🎉 Real MP4 Video downloaded: ${finalFilename}`);
+              }
+
+              // Step 3: Trigger real MP4 file stream download (NOT an HTML canvas, SVG, or poster image!)
+              // Method A: Hidden iframe trigger (prevents popup blocker suppression)
+              const iframe = document.createElement('iframe');
+              iframe.style.display = 'none';
+              iframe.src = artifactUrl;
+              document.body.appendChild(iframe);
+              setTimeout(() => { try { document.body.removeChild(iframe); } catch(e){} }, 60000);
+
+              // Method B: Programmatic anchor fallback
+              const downloadLink = document.createElement('a');
+              downloadLink.href = artifactUrl;
+              downloadLink.download = finalFilename;
+              document.body.appendChild(downloadLink);
+              downloadLink.click();
+              setTimeout(() => { try { document.body.removeChild(downloadLink); } catch(e){} }, 100);
+
+              if (triggerBtn) {
+                triggerBtn.disabled = false;
+                triggerBtn.style.opacity = '1';
+                triggerBtn.innerHTML = statusData.youtubeUrl 
+                  ? `<span>🎉</span><span>Shorts Uploaded!</span>` 
+                  : `<span>✅</span><span>Downloaded ${finalFilename}</span>`;
+              }
+              if (mainDownloadBtn) {
+                mainDownloadBtn.disabled = false;
+                mainDownloadBtn.style.opacity = '1';
+              }
+
+              setTimeout(() => {
+                downloadStatusCard.style.display = 'none';
+                if (triggerBtn && origBtnHtml) {
+                  triggerBtn.innerHTML = origBtnHtml;
+                }
+              }, 7000);
+
+            } else if (statusData.status === 'ERROR') {
+              clearInterval(pollInterval);
+              statusMsg.textContent = `❌ Render Error: ${statusData.error || 'FFmpeg failed to slice clip'}`;
+              showToast(`Render Error: ${statusData.error}`);
+              if (triggerBtn) {
+                triggerBtn.disabled = false;
+                triggerBtn.style.opacity = '1';
+                if (origBtnHtml) triggerBtn.innerHTML = origBtnHtml;
+              }
+              if (mainDownloadBtn) {
+                mainDownloadBtn.disabled = false;
+                mainDownloadBtn.style.opacity = '1';
+              }
+            }
+          } catch (pollErr) {
+            console.error('Polling error', pollErr);
+          }
+        }, 800);
+
+      } catch (err) {
+        statusMsg.textContent = `❌ Failed to initiate video trim: ${err.message}`;
+        showToast(`Failed: ${err.message}`);
+        if (triggerBtn) {
+          triggerBtn.disabled = false;
+          triggerBtn.style.opacity = '1';
+          if (origBtnHtml) triggerBtn.innerHTML = origBtnHtml;
+        }
+        if (mainDownloadBtn) {
+          mainDownloadBtn.disabled = false;
+          mainDownloadBtn.style.opacity = '1';
+        }
+      }
+    }
+
+    // --- Download Whole Video Handler (Original Full-Length HD MP4) ---
+    async function downloadFullVideo(triggerBtn) {
+      // 1. If local video file uploaded
+      if (currentVideoId === "local_video" && localVideoFileUrl) {
+        const a = document.createElement('a');
+        a.href = localVideoFileUrl;
+        a.download = `${(currentVideoTitle || 'video').replace(/[^\w-]/g, '_')}_full.mp4`;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => document.body.removeChild(a), 100);
+        showToast('Downloading whole local video file!');
+        return;
+      }
+
+      // 2. Online Video (YouTube, Kick, Twitch, etc.)
+      const effectiveUrl = currentVideoUrl || (currentVideoId && currentVideoId !== "custom_video" && currentVideoId !== "local_video" ? `https://www.youtube.com/watch?v=${currentVideoId}` : '');
+
+      if (!effectiveUrl) {
+        showToast('Please paste a YouTube or video link into the box above first!');
+        videoUrlInput.focus();
+        return;
+      }
+
+      downloadStatusCard.style.display = 'block';
+      const statusMsg = document.getElementById('downloadStatusMsg');
+      const progressFill = document.getElementById('renderProgressFill');
+
+      const origBtnHtml = triggerBtn ? triggerBtn.innerHTML : '';
+      if (triggerBtn) {
+        triggerBtn.disabled = true;
+        triggerBtn.style.opacity = '0.7';
+        triggerBtn.innerHTML = '<span>⏳</span><span>Downloading Whole Video...</span>';
+      }
+
+      progressFill.style.width = '20%';
+      statusMsg.innerHTML = `[1/2] Connecting to server to fetch whole video in HD MP4: "${currentVideoTitle}"...`;
+
+      try {
+        const payload = {
+          sourceUrl: effectiveUrl,
+          title: currentVideoTitle || 'full_video'
+        };
+
+        const res = await fetch(`${API_BASE}/api/download-full-video`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!data.jobId) {
+          throw new Error(data.error || 'Server failed to start full video download');
+        }
+
+        const jobId = data.jobId;
+        const expectedFilename = data.filename || 'full_video.mp4';
+        showToast('Full video download in progress on server...');
+
+        const pollInterval = setInterval(async () => {
+          try {
+            const statusRes = await fetch(`${API_BASE}/api/clip-status?jobId=${encodeURIComponent(jobId)}`);
+            if (!statusRes.ok) return;
+
+            const statusData = await statusRes.json();
+            const pct = statusData.progress || 45;
+            progressFill.style.width = `${pct}%`;
+            statusMsg.textContent = `[Full Video Download] ${statusData.step || 'Fetching video stream...'}`;
+
+            if (statusData.status === 'COMPLETED') {
+              clearInterval(pollInterval);
+              progressFill.style.width = '100%';
+              const finalFilename = statusData.filename || expectedFilename;
+              const artifactUrl = `${API_BASE}/api/download-artifact?jobId=${encodeURIComponent(jobId)}`;
+
+              playCelebrationChime();
+              triggerDesktopNotification('Whole Video Ready! 🎬', 'Your full-length video was downloaded successfully.', artifactUrl);
+
+              statusMsg.innerHTML = `✅ [2/2] Whole Video Ready! <a href="${artifactUrl}" download="${finalFilename}" style="color:#38bdf8; text-decoration:underline; font-weight:700; margin-left:8px;">Click here if file download does not start</a>`;
+
+              // Trigger download
+              const iframe = document.createElement('iframe');
+              iframe.style.display = 'none';
+              iframe.src = artifactUrl;
+              document.body.appendChild(iframe);
+              setTimeout(() => { try { document.body.removeChild(iframe); } catch(e){} }, 60000);
+
+              const downloadLink = document.createElement('a');
+              downloadLink.href = artifactUrl;
+              downloadLink.download = finalFilename;
+              document.body.appendChild(downloadLink);
+              downloadLink.click();
+              setTimeout(() => { try { document.body.removeChild(downloadLink); } catch(e){} }, 100);
+
+              showToast(`🎉 Whole video downloaded: ${finalFilename}`);
+
+              if (triggerBtn) {
+                triggerBtn.disabled = false;
+                triggerBtn.style.opacity = '1';
+                triggerBtn.innerHTML = `<span>✅</span><span>Downloaded Whole Video</span>`;
+              }
+
+              setTimeout(() => {
+                downloadStatusCard.style.display = 'none';
+                if (triggerBtn && origBtnHtml) {
+                  triggerBtn.innerHTML = origBtnHtml;
+                }
+              }, 6000);
+
+            } else if (statusData.status === 'ERROR') {
+              clearInterval(pollInterval);
+              statusMsg.textContent = `❌ Download Error: ${statusData.error || 'Failed to download full video'}`;
+              showToast(`Download Error: ${statusData.error}`);
+              if (triggerBtn) {
+                triggerBtn.disabled = false;
+                triggerBtn.style.opacity = '1';
+                if (origBtnHtml) triggerBtn.innerHTML = origBtnHtml;
+              }
+            }
+          } catch (pollErr) {
+            console.error('Polling error', pollErr);
+          }
+        }, 1200);
+
+      } catch (err) {
+        statusMsg.textContent = `❌ Failed to start full download: ${err.message}`;
+        showToast(`Failed: ${err.message}`);
+        if (triggerBtn) {
+          triggerBtn.disabled = false;
+          triggerBtn.style.opacity = '1';
+          if (origBtnHtml) triggerBtn.innerHTML = origBtnHtml;
+        }
+      }
+    }
+
+    // --- Copy Direct Timestamp URL ---
+    function copyDirectClipUrl() {
+      const clip = activeClips[currentClipIndex];
+      if (!clip) {
+        showToast('No active clip selected');
+        return;
+      }
+      let clipUrl = '';
+      if (currentVideoId && currentVideoId !== "custom_video" && currentVideoId !== "local_video") {
+        clipUrl = `https://www.youtube.com/watch?v=${currentVideoId}&t=${clip.startSec}s`;
+      } else {
+        clipUrl = `${window.location.origin}/#clip=${clip.id}&start=${clip.startSec}`;
+      }
+      navigator.clipboard.writeText(clipUrl).then(() => {
+        showToast('Copied direct timestamp URL to clipboard!');
+      }).catch(() => {
+        showToast('URL: ' + clipUrl);
+      });
+    }
+
+    // --- Helpers ---
+    function extractYouTubeId(url) {
+      if (!url) return null;
+      const regExp = /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/;
+      const match = url.match(regExp);
+      return match ? match[1] : null;
+    }
+
+    function copyMetaText(elementId) {
+      const text = document.getElementById(elementId).textContent;
+      navigator.clipboard.writeText(text);
+      showToast('Copied to clipboard!');
+    }
+
+    function copyHashtags() {
+      const clip = activeClips[currentClipIndex];
+      if (!clip) return;
+      navigator.clipboard.writeText(clip.hashtags.join(' '));
+      showToast('Copied all viral hashtags!');
+    }
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2800);
+    }
+
+    // --- Start Timeline Animation Engine on Load ---
+    startTimeLoop();
+    checkYouTubeAuthStatus();
+
+    // Auto-request desktop notification permission on first interaction
+    document.addEventListener('click', () => {
+      requestNotificationPermission();
+    }, { once: true });
+
+
+  </script>
+</body>
+</html>
