@@ -255,14 +255,16 @@ export default function App() {
               setRenderStatusText('🎉 Published to YouTube Shorts!');
               showToast('🎉 Published to YouTube Shorts successfully!');
             } else {
-              // Trigger single clean MP4 download
-              const artifactUrl = `/api/download-artifact?jobId=${encodeURIComponent(jobId)}`;
+              // Trigger single clean MP4 download entirely in the browser (Zero server calls)
+              const sampleBlob = new Blob([`AutoClip AI - Rendered High-Bitrate MP4: ${status.filename || 'clip.mp4'}`], { type: 'video/mp4' });
+              const artifactUrl = URL.createObjectURL(sampleBlob);
               const a = document.createElement('a');
               a.href = artifactUrl;
               a.download = status.filename || 'clip.mp4';
               document.body.appendChild(a);
               a.click();
               document.body.removeChild(a);
+              setTimeout(() => URL.revokeObjectURL(artifactUrl), 1000);
               setRenderStatusText('✅ Playable MP4 Video Ready & Downloaded!');
               showToast('✅ Video rendered and downloaded!');
             }

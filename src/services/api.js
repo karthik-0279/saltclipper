@@ -2,12 +2,52 @@
  * Centralized Client-Side API & State Service for AutoClip AI
  * 
  * 100% Client-Side Architecture for Vercel / Static Deployments:
- * - Zero reliance on non-existent backend endpoints (/api/login, /api/auth/youtube/status, /api/youtube/quota)
+ * - Zero reliance on non-existent backend endpoints
  * - Pure client-side Admin Authentication with persistent localStorage sessions
  * - Complete persistent browser audit trail for Login History
+ * - Multi-Account YouTube Profile Rotation Engine & Unlimited Upload Queue
  * - Fail-safe mock stores for YouTube status, quotas, video renders, and Gemini AI scripts
- * - Completely prevents 502 Bad Gateway and JSON parsing errors
+ * - Completely eliminates 502 Bad Gateway and JSON parsing errors
  */
+
+import {
+  getYoutubeProfiles,
+  getActiveProfile,
+  setActiveProfile,
+  addNewProfile,
+  updateProfile,
+  deleteProfile,
+  resetProfileQuota,
+  resetAllProfilesQuota,
+  getRotationLogs,
+  recordRotationLog,
+  clearRotationLogs,
+  rotateToNextProfile,
+  getMultiAccountStats,
+  executeUploadWithRotation,
+  PROFILES_STORAGE_KEY,
+  ROTATION_LOGS_STORAGE_KEY
+} from './profileManager';
+
+// Re-export profile management helpers for direct component access
+export {
+  getYoutubeProfiles,
+  getActiveProfile,
+  setActiveProfile,
+  addNewProfile,
+  updateProfile,
+  deleteProfile,
+  resetProfileQuota,
+  resetAllProfilesQuota,
+  getRotationLogs,
+  recordRotationLog,
+  clearRotationLogs,
+  rotateToNextProfile,
+  getMultiAccountStats,
+  executeUploadWithRotation,
+  PROFILES_STORAGE_KEY,
+  ROTATION_LOGS_STORAGE_KEY
+};
 
 // Storage Keys
 export const STORAGE_KEYS = {
@@ -16,7 +56,9 @@ export const STORAGE_KEYS = {
   LOGIN_HISTORY: 'autoclip_login_history',
   YOUTUBE_STATUS: 'autoclip_youtube_status',
   YOUTUBE_QUOTA: 'autoclip_uploads_today',
-  YOUTUBE_CONFIG: 'autoclip_youtube_config'
+  YOUTUBE_CONFIG: 'autoclip_youtube_config',
+  YOUTUBE_PROFILES: PROFILES_STORAGE_KEY,
+  ROTATION_LOGS: ROTATION_LOGS_STORAGE_KEY
 };
 
 // Configured Administrator Credentials
@@ -97,7 +139,6 @@ export function recordLoginEvent({ email, role = 'admin', status = 'SUCCESS', re
 // ==========================================
 
 export async function loginUser(email, password) {
-  // Pure client-side validation
   const normEmail = (email || '').trim().toLowerCase();
   const trimmedPass = (password || '').trim();
 
@@ -166,68 +207,66 @@ export async function logoutUser(token) {
 }
 
 // ==========================================
-// 3. Client-Side YouTube Status & Quota (Zero 502 Errors)
+// 3. Client-Side Multi-Account YouTube Status & Quota (Zero 502 Errors)
 // ==========================================
 
 export function getLocalQuota() {
-  const uploadsToday = parseInt(localStorage.getItem(STORAGE_KEYS.YOUTUBE_QUOTA) || '0', 10);
-  const dailyLimit = 85;
+  const stats = getMultiAccountStats();
+  const activeProf = stats.activeProfile || { usedToday: 0, dailyLimit: 85, handle: '@AutoClipMain' };
+  const uploadsToday = activeProf.usedToday || 0;
+  const dailyLimit = activeProf.dailyLimit || 85;
   const remaining = Math.max(0, dailyLimit - uploadsToday);
-  const isCircuitBreakerOpen = uploadsToday >= dailyLimit;
+  const isCircuitBreakerOpen = stats.isAllExhausted;
 
   return {
     success: true,
     uploadsToday,
     dailyLimit,
     remainingUploads: remaining,
-    percentUsed: Math.min(100, Math.round((uploadsToday / dailyLimit) * 100)),
+    percentUsed: stats.percentUsed,
     circuitBreakerOpen: isCircuitBreakerOpen,
     isCircuitBreakerOpen,
-    circuitBreakerReason: isCircuitBreakerOpen ? 'Safe daily upload cap reached.' : null,
+    circuitBreakerReason: isCircuitBreakerOpen ? 'All configured multi-account quotas exhausted.' : null,
     nextReset: { display: '12h 00m' },
-    canUpload: remaining > 0 && !isCircuitBreakerOpen
+    canUpload: stats.totalRemaining > 0,
+    // Multi-Account Pool Attributes
+    totalPoolCapacity: stats.totalCapacity,
+    totalPoolUsed: stats.totalUsedToday,
+    totalPoolRemaining: stats.totalRemaining,
+    activeProfileHandle: activeProf.handle,
+    activeProfileName: activeProf.name,
+    totalProfilesCount: stats.totalProfiles
   };
 }
 
 export async function fetchYouTubeStatus() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.YOUTUBE_STATUS);
-    if (raw) return JSON.parse(raw);
-  } catch (e) {}
+  const stats = getMultiAccountStats();
+  const activeProf = stats.activeProfile || {
+    name: 'AutoClip Official Main',
+    handle: '@AutoClipMain',
+    subscriberCount: '124K'
+  };
 
-  // Default connected status in client mode
   return {
     connected: true,
     isConnected: true,
-    channelTitle: 'AutoClip Official Channel',
-    channel: { title: 'AutoClip Official Channel' },
-    channelId: 'UC_autoclip_live',
-    customUrl: '@autoclip_studio',
-    subscriberCount: '124K',
+    channelTitle: `${activeProf.name} (${activeProf.handle})`,
+    channel: { title: `${activeProf.name} (${activeProf.handle})` },
+    channelId: activeProf.id || 'UC_autoclip_live',
+    customUrl: activeProf.handle,
+    subscriberCount: activeProf.subscriberCount || '124K',
+    activeProfile: activeProf,
+    multiAccountStats: stats,
     quota: getLocalQuota()
   };
 }
 
 export async function saveYouTubeConfig(clientId, clientSecret) {
   localStorage.setItem(STORAGE_KEYS.YOUTUBE_CONFIG, JSON.stringify({ clientId, clientSecret }));
-  localStorage.setItem(STORAGE_KEYS.YOUTUBE_STATUS, JSON.stringify({
-    connected: true,
-    isConnected: true,
-    channelTitle: 'Connected Channel (OAuth Active)',
-    channel: { title: 'Connected Channel (OAuth Active)' },
-    subscriberCount: '124K',
-    quota: getLocalQuota()
-  }));
   return { success: true, message: 'OAuth credentials saved successfully' };
 }
 
 export async function disconnectYouTube() {
-  localStorage.setItem(STORAGE_KEYS.YOUTUBE_STATUS, JSON.stringify({
-    connected: false,
-    isConnected: false,
-    channelTitle: null,
-    quota: getLocalQuota()
-  }));
   return { success: true, message: 'YouTube channel disconnected' };
 }
 
@@ -236,10 +275,10 @@ export async function fetchYouTubeQuota() {
 }
 
 export async function resetYouTubeQuota(dailyLimit = 85) {
-  localStorage.setItem(STORAGE_KEYS.YOUTUBE_QUOTA, '0');
+  resetAllProfilesQuota();
   return {
     success: true,
-    message: 'YouTube daily quota counter and circuit breaker successfully reset.',
+    message: 'All multi-account YouTube daily quota counters and circuit breakers successfully reset.',
     quota: getLocalQuota()
   };
 }
@@ -251,6 +290,8 @@ export async function resetYouTubeQuota(dailyLimit = 85) {
 export async function fetchAdminOverview() {
   const history = getLocalLoginHistory();
   const quota = getLocalQuota();
+  const multiAccount = getMultiAccountStats();
+  const rotationLogs = getRotationLogs();
 
   return {
     success: true,
@@ -259,6 +300,8 @@ export async function fetchAdminOverview() {
     adminAlertEmail: 'karthikgoud0279@gmail.com',
     recentLogins: history,
     youtubeQuota: quota,
+    multiAccountStats: multiAccount,
+    rotationLogs,
     sessions: [
       {
         name: 'Administrator',
@@ -329,20 +372,26 @@ export async function pollJobStatus(jobId) {
     job.step = `Reframing into ${job.aspect} vertical mobile canvas...`;
   } else if (job.progress < 85) {
     job.progress = 85;
-    job.step = job.autoUploadYouTube ? 'Auto-publishing to YouTube Shorts...' : 'Encoding final high-bitrate MP4...';
+    job.step = job.autoUploadYouTube ? 'Auto-publishing to YouTube Shorts with Multi-Account Rotation...' : 'Encoding final high-bitrate MP4...';
   } else {
     job.progress = 100;
     job.status = 'COMPLETED';
 
     if (job.autoUploadYouTube) {
-      job.uploadStatus = 'UPLOADED';
-      job.youtubeVideoId = 'shorts_clip_auto';
-      job.youtubeUrl = 'https://youtube.com/shorts/dQw4w9WgXcQ';
-      job.step = 'Successfully Uploaded to YouTube Shorts! 🎉';
-      
-      // Increment local upload count
-      const current = parseInt(localStorage.getItem(STORAGE_KEYS.YOUTUBE_QUOTA) || '0', 10);
-      localStorage.setItem(STORAGE_KEYS.YOUTUBE_QUOTA, String(current + 1));
+      try {
+        const uploadResult = await executeUploadWithRotation({
+          clipTitle: job.title,
+          privacyStatus: job.privacyStatus
+        });
+        job.uploadStatus = 'UPLOADED';
+        job.youtubeVideoId = uploadResult.videoId;
+        job.youtubeUrl = uploadResult.shortsUrl;
+        job.accountUsed = uploadResult.accountUsed;
+        job.step = `Published to YouTube Shorts via ${uploadResult.accountUsed.handle}! 🎉`;
+      } catch (err) {
+        job.uploadStatus = 'FAILED';
+        job.step = `Upload note: ${err.message}`;
+      }
     } else {
       job.step = 'Rendering Complete! Playable MP4 Ready.';
       job.filename = `${(job.title || 'viral_clip').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_')}.mp4`;
@@ -363,19 +412,18 @@ export async function initiateFullVideoDownload(sourceUrl, title) {
 }
 
 // ==========================================
-// 6. Client-Side Batch & Single Uploads
+// 6. Client-Side Batch & Single Uploads with Multi-Account Rotation
 // ==========================================
 
 export async function uploadClipToYouTube({ filePath, title, privacyStatus = 'public', scheduleTime = null }) {
-  const current = parseInt(localStorage.getItem(STORAGE_KEYS.YOUTUBE_QUOTA) || '0', 10);
-  localStorage.setItem(STORAGE_KEYS.YOUTUBE_QUOTA, String(current + 1));
+  const uploadResult = await executeUploadWithRotation({
+    clipTitle: title || 'Viral Clip',
+    privacyStatus,
+    scheduleTime
+  });
 
-  const videoId = `clip_${Date.now()}`;
   return {
-    success: true,
-    status: 'success',
-    videoId,
-    shortsUrl: `https://youtube.com/shorts/${videoId}`,
+    ...uploadResult,
     title: title || 'Viral Clip',
     privacyStatus: scheduleTime ? 'private' : privacyStatus,
     scheduledAt: scheduleTime || null
@@ -384,24 +432,27 @@ export async function uploadClipToYouTube({ filePath, title, privacyStatus = 'pu
 
 export async function uploadAllClipsToYouTube(payload) {
   const batchId = `batch_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  const total = payload.clips?.length || 4;
+
   clientBatches[batchId] = {
     id: batchId,
     batchId,
     status: 'PROCESSING',
-    currentPart: 1,
-    totalParts: payload.clips?.length || 4,
-    progress: 15,
-    step: `Processing Part 1/${payload.clips?.length || 4} for YouTube Shorts...`,
+    currentPart: 0,
+    totalParts: total,
+    progress: 5,
+    step: `Initializing intelligent multi-account upload queue for ${total} clips...`,
     uploadedClips: [],
     failedClips: [],
-    clips: payload.clips || []
+    clips: payload.clips || [],
+    privacyStatus: payload.privacyStatus || 'public'
   };
 
   return {
     success: true,
     batchId,
-    totalParts: payload.clips?.length || 4,
-    message: 'Batch upload pipeline started successfully'
+    totalParts: total,
+    message: 'Multi-account batch upload pipeline started successfully'
   };
 }
 
@@ -417,20 +468,43 @@ export async function pollBatchStatus(batchId) {
   }
 
   if (batch.currentPart < batch.totalParts) {
-    batch.currentPart += 1;
-    batch.progress = Math.round((batch.currentPart / batch.totalParts) * 100);
-    batch.step = `Uploaded Part ${batch.currentPart}/${batch.totalParts} to YouTube Shorts!`;
-    batch.uploadedClips.push({
-      part: batch.currentPart,
-      shortsUrl: `https://youtube.com/shorts/part_${batch.currentPart}`
-    });
+    const nextPart = batch.currentPart + 1;
+    const clipData = batch.clips[nextPart - 1] || { title: `Part #${nextPart}` };
 
-    const current = parseInt(localStorage.getItem(STORAGE_KEYS.YOUTUBE_QUOTA) || '0', 10);
-    localStorage.setItem(STORAGE_KEYS.YOUTUBE_QUOTA, String(current + 1));
+    try {
+      // Execute upload through the rotation controller
+      const uploadRes = await executeUploadWithRotation({
+        clipTitle: clipData.title || `Viral Short Part #${nextPart}`,
+        privacyStatus: batch.privacyStatus
+      });
+
+      batch.currentPart = nextPart;
+      batch.progress = Math.round((batch.currentPart / batch.totalParts) * 100);
+      batch.step = `Uploaded Part ${batch.currentPart}/${batch.totalParts} to YouTube via ${uploadRes.accountUsed?.handle || 'Active Account'}!`;
+      
+      batch.uploadedClips.push({
+        part: batch.currentPart,
+        clipId: clipData.clipId || `clip_${batch.currentPart}`,
+        title: clipData.title,
+        shortsUrl: uploadRes.shortsUrl,
+        accountUsed: uploadRes.accountUsed?.handle,
+        rotationNote: uploadRes.rotationNote
+      });
+
+    } catch (uploadErr) {
+      batch.failedClips.push({
+        part: nextPart,
+        error: uploadErr.message
+      });
+      batch.status = 'HALTED';
+      batch.step = `Queue halted: ${uploadErr.message}`;
+      return { ...batch };
+    }
+
   } else {
     batch.status = 'COMPLETED';
     batch.progress = 100;
-    batch.step = `Upload Series Complete! Published ${batch.totalParts} clips to YouTube Shorts.`;
+    batch.step = `Upload Series Complete! Published ${batch.uploadedClips.length} clips with Multi-Account Rotation.`;
   }
 
   return { ...batch };
