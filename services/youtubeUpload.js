@@ -282,7 +282,8 @@ async function uploadShort(videoFilePath, title, description = '', options = {})
           tags: options.tags || ['Shorts', 'viral', 'clips', 'trending', 'reels', 'ai']
         },
         status: {
-          privacyStatus: privacyStatus,
+          privacyStatus: options.scheduleTime ? 'private' : privacyStatus,
+          publishAt: options.scheduleTime ? new Date(options.scheduleTime).toISOString() : undefined,
           selfDeclaredMadeForKids: false
         }
       },

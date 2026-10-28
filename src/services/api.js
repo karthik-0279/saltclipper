@@ -126,5 +126,58 @@ export async function resetYouTubeQuota(dailyLimit) {
   return data;
 }
 
+// ==========================================
+// Video Processing & Scheduled YouTube Uploads
+// ==========================================
+
+export async function processVideoPipeline(videoLink, scheduleTime = null, privacyStatus = 'public') {
+  const res = await fetch('/api/export-clip', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sourceUrl: videoLink,
+      scheduleTime,
+      privacyStatus
+    })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Video pipeline failed');
+  return data;
+}
+
+export async function uploadClipToYouTube({ filePath, title, privacyStatus = 'public', scheduleTime = null }) {
+  const res = await fetch('/api/upload-to-youtube', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      filePath,
+      title,
+      privacyStatus,
+      scheduleTime
+    })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Upload failed');
+  return data;
+}
+
+export async function generateGeminiScript(summary, prompt = null) {
+  const res = await fetch('/api/cloud-ai/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ summary, prompt })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Script generation failed');
+  return data;
+}
+
+export async function fetchCloudAiStatus() {
+  const res = await fetch('/api/cloud-ai/status');
+  if (!res.ok) throw new Error('Failed to fetch Cloud AI status');
+  return res.json();
+}
+
+
 
 

@@ -1101,7 +1101,7 @@ const server = http.createServer(async (req, res) => {
       try {
         const data = JSON.parse(body || '{}');
         const collection = data.collection || 'project_updates';
-        const result = await cloudAiPipeline.runPythonPipeline(collection);
+        const result = await cloudAiPipeline.triggerCloudAiPipeline(collection);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({ success: true, ...result }));
       } catch (err) {
