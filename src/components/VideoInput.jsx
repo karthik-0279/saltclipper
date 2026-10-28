@@ -4,6 +4,7 @@ import React, { useState } from 'react';
  * VideoInput Component
  * Supports pasting YouTube/Kick/Twitch/TikTok links or uploading local video files,
  * with 3 selectable operational modes.
+ * Styled with Muted Sage Gray, Warm Cream Beige, and Deep Burgundy.
  */
 export default function VideoInput({ 
   mode, 
@@ -31,9 +32,9 @@ export default function VideoInput({
   return (
     <section className="card input-box">
       {/* 3 Selectable Processing Modes */}
-      <div style={{ marginBottom: '1.25rem' }}>
-        <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#e2e8f0', marginBottom: '0.85rem' }}>
-          🎯 Select Action:
+      <div style={{ marginBottom: '1.5rem' }}>
+        <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '0.85rem' }}>
+          🎯 Select Pipeline Action:
         </div>
         <div className="mode-cards-grid">
           {/* Mode 1: Highlights */}
@@ -81,18 +82,21 @@ export default function VideoInput({
       </div>
 
       {/* Input Mode Selector */}
-      <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', gap: '0.65rem', marginBottom: '1.1rem' }}>
         <button 
           type="button"
           onClick={() => setInputType('url')}
           style={{
-            background: inputType === 'url' ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)',
-            border: `1px solid ${inputType === 'url' ? 'var(--primary)' : 'var(--card-border)'}`,
-            color: inputType === 'url' ? '#fff' : 'var(--text-muted)',
-            padding: '0.45rem 1rem',
+            background: inputType === 'url' ? 'var(--primary)' : 'var(--bg-warm)',
+            border: `1.5px solid ${inputType === 'url' ? 'var(--primary)' : 'var(--card-border)'}`,
+            color: inputType === 'url' ? '#FFFFFF' : 'var(--text-muted)',
+            padding: '0.5rem 1.15rem',
             borderRadius: '8px',
             fontWeight: 700,
-            cursor: 'pointer'
+            fontSize: '0.85rem',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: inputType === 'url' ? '0 2px 8px var(--primary-glow)' : 'none'
           }}
         >
           🔗 Paste Video Link
@@ -101,13 +105,16 @@ export default function VideoInput({
           type="button"
           onClick={() => setInputType('file')}
           style={{
-            background: inputType === 'file' ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)',
-            border: `1px solid ${inputType === 'file' ? 'var(--primary)' : 'var(--card-border)'}`,
-            color: inputType === 'file' ? '#fff' : 'var(--text-muted)',
-            padding: '0.45rem 1rem',
+            background: inputType === 'file' ? 'var(--primary)' : 'var(--bg-warm)',
+            border: `1.5px solid ${inputType === 'file' ? 'var(--primary)' : 'var(--card-border)'}`,
+            color: inputType === 'file' ? '#FFFFFF' : 'var(--text-muted)',
+            padding: '0.5rem 1.15rem',
             borderRadius: '8px',
             fontWeight: 700,
-            cursor: 'pointer'
+            fontSize: '0.85rem',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: inputType === 'file' ? '0 2px 8px var(--primary-glow)' : 'none'
           }}
         >
           📁 Upload Local Video File
@@ -116,7 +123,7 @@ export default function VideoInput({
 
       {inputType === 'url' ? (
         <form onSubmit={handleSubmit} className="url-input-wrapper">
-          <span style={{ fontSize: '1.25rem', color: 'var(--text-dim)' }}>🔗</span>
+          <span style={{ fontSize: '1.25rem', color: 'var(--sage)' }}>🔗</span>
           <input 
             type="text" 
             className="url-input" 
@@ -132,17 +139,19 @@ export default function VideoInput({
       ) : (
         <div 
           style={{
-            border: '2px dashed rgba(99,102,241,0.4)',
-            background: 'rgba(99,102,241,0.06)',
+            border: '2px dashed var(--sage)',
+            background: 'var(--sage-light)',
             borderRadius: 'var(--radius-md)',
-            padding: '2rem',
+            padding: '2.5rem 2rem',
             textAlign: 'center',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
           }}
           onClick={() => document.getElementById('localFileInput').click()}
         >
-          <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🎬</div>
-          <p style={{ fontWeight: 700, color: '#f1f5f9' }}>Click to browse or drag & drop MP4 / WebM</p>
+          <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem', color: 'var(--primary)' }}>🎬</div>
+          <p style={{ fontWeight: 800, color: 'var(--text-heading)', fontSize: '1rem' }}>Click to browse or drag & drop MP4 / WebM</p>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '4px' }}>Supports all standard video formats up to 4K resolution</p>
           <input 
             type="file" 
             id="localFileInput" 

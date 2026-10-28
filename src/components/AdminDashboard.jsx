@@ -24,6 +24,7 @@ import { LOGIN_HISTORY_STORAGE_KEY } from './AdminLoginModal';
  * 2. Intelligent Account Rotation & Queue Controller
  * 3. Client-Side Login History & Audit Trail
  * 4. App Management Controls & Security Overview
+ * Styled with Muted Sage Gray, Warm Cream Beige, and Deep Burgundy.
  */
 export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast }) {
   const [activeTab, setActiveTab] = useState('profiles'); // 'profiles' | 'logins' | 'rotations' | 'system'
@@ -50,11 +51,11 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
   if (!isAdmin) {
     return (
       <div className="card" style={{ textAlign: 'center', padding: '3.5rem 1.5rem', maxWidth: '520px', margin: '3rem auto' }}>
-        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
-        <h2 style={{ color: '#ef4444', marginBottom: '0.5rem', fontWeight: 800 }}>
+        <div style={{ fontSize: '3rem', marginBottom: '1rem', color: 'var(--primary)' }}>🔒</div>
+        <h2 style={{ color: 'var(--primary)', marginBottom: '0.5rem', fontWeight: 800 }}>
           Administrator Access Required
         </h2>
-        <p style={{ color: '#94a3b8', fontSize: '0.9rem', lineHeight: 1.6 }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6 }}>
           This management panel is strictly restricted. Regular users have zero access to this area. Please authenticate as an administrator to proceed.
         </p>
         <button
@@ -62,13 +63,14 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
           onClick={onBackToStudio}
           style={{
             marginTop: '1.5rem',
-            background: 'linear-gradient(135deg, var(--primary), #4f46e5)',
-            color: '#fff',
+            background: 'var(--primary-gradient)',
+            color: '#FFFFFF',
             border: 'none',
-            padding: '0.7rem 1.5rem',
+            padding: '0.75rem 1.65rem',
             borderRadius: '8px',
             fontWeight: 700,
-            cursor: 'pointer'
+            cursor: 'pointer',
+            boxShadow: '0 4px 14px var(--primary-glow)'
           }}
         >
           Return to Studio View
@@ -139,7 +141,6 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
   };
 
   const handleSimulateRotation = (id) => {
-    // Fill up the profile to test auto-rotation
     const updated = profiles.map(p => {
       if (p.id === id) {
         return { ...p, usedToday: p.dailyLimit, status: 'EXHAUSTED' };
@@ -235,16 +236,24 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
   combinedLogins.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
-    <div className="admin-dashboard-container" style={{ animation: 'fadeIn 0.3s ease-out', marginTop: '1.5rem' }}>
+    <div className="admin-dashboard-container" style={{ animation: 'fadeIn 0.3s ease-out', marginTop: '1rem' }}>
       {/* Top Header Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <span style={{ fontSize: '1.6rem' }}>🛡️</span>
-            <h2 style={{ fontSize: '1.45rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>
+            <span style={{ fontSize: '1.6rem', color: 'var(--primary)' }}>🛡️</span>
+            <h2 style={{ fontSize: '1.45rem', fontWeight: 800, margin: 0, color: 'var(--text-heading)' }}>
               Administrator Control Center
             </h2>
-            <span style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.5)', color: '#f87171', fontSize: '0.75rem', fontWeight: 800, padding: '0.2rem 0.6rem', borderRadius: '12px' }}>
+            <span style={{ 
+              background: 'rgba(88, 24, 39, 0.1)', 
+              border: '1px solid rgba(88, 24, 39, 0.3)', 
+              color: 'var(--primary)', 
+              fontSize: '0.75rem', 
+              fontWeight: 800, 
+              padding: '0.2rem 0.65rem', 
+              borderRadius: '12px' 
+            }}>
               ADMIN UNLOCKED
             </span>
           </div>
@@ -259,14 +268,16 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
             onClick={refreshAll}
             disabled={loading}
             style={{
-              background: 'rgba(255,255,255,0.08)',
-              border: '1px solid var(--card-border)',
-              color: '#cbd5e1',
+              background: 'var(--card-bg)',
+              border: '1.5px solid var(--card-border)',
+              color: 'var(--text)',
               padding: '0.5rem 1rem',
               borderRadius: '8px',
               fontWeight: 700,
               fontSize: '0.85rem',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
             }}
           >
             🔄 {loading ? 'Refreshing...' : 'Refresh'}
@@ -276,17 +287,19 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
             type="button" 
             onClick={() => setShowAddModal(true)}
             style={{
-              background: 'linear-gradient(135deg, #10b981, #059669)',
+              background: 'var(--primary-gradient)',
               border: 'none',
-              color: '#ffffff',
-              padding: '0.5rem 1.15rem',
+              color: '#FFFFFF',
+              padding: '0.55rem 1.25rem',
               borderRadius: '8px',
               fontWeight: 700,
               fontSize: '0.85rem',
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px'
+              gap: '6px',
+              boxShadow: '0 3px 10px var(--primary-glow)',
+              transition: 'all 0.2s ease'
             }}
           >
             <span>➕</span> Add YouTube Account
@@ -296,14 +309,15 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
             type="button" 
             onClick={onBackToStudio}
             style={{
-              background: 'linear-gradient(135deg, var(--primary), #4f46e5)',
-              border: 'none',
-              color: '#ffffff',
-              padding: '0.5rem 1.15rem',
+              background: 'var(--bg-subtle)',
+              border: '1.5px solid var(--sage)',
+              color: 'var(--text-heading)',
+              padding: '0.55rem 1.25rem',
               borderRadius: '8px',
               fontWeight: 700,
               fontSize: '0.85rem',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
             }}
           >
             🎬 Back to Studio
@@ -312,79 +326,80 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
       </div>
 
       {error && (
-        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '10px', padding: '1rem', color: '#fca5a5', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+        <div style={{ background: 'rgba(88, 24, 39, 0.08)', border: '1px solid rgba(88, 24, 39, 0.3)', borderRadius: '10px', padding: '1rem', color: 'var(--primary)', marginBottom: '1.5rem', fontSize: '0.9rem', fontWeight: 600 }}>
           ⚠️ Notice: {error}
         </div>
       )}
 
       {/* Aggregate Multi-Account Pool Overview Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #10b981' }}>
+        <div className="card" style={{ padding: '1.35rem', borderLeft: '4px solid var(--primary)', marginBottom: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>
             Multi-Account Pool Capacity
           </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f8fafc', margin: '0.35rem 0' }}>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-heading)', margin: '0.35rem 0' }}>
             {multiStats?.totalCapacity || 425} Clips / Day
           </div>
-          <div style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 600 }}>
+          <div style={{ fontSize: '0.78rem', color: 'var(--sage-dark)', fontWeight: 700 }}>
             {multiStats?.totalProfiles || 5} Profiles Configured ($N \times 85$ Cap)
           </div>
         </div>
 
-        <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #38bdf8' }}>
+        <div className="card" style={{ padding: '1.35rem', borderLeft: '4px solid var(--sage)', marginBottom: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>
             Active Rotation Runner
           </div>
-          <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#38bdf8', margin: '0.35rem 0' }}>
+          <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--primary)', margin: '0.35rem 0' }}>
             {multiStats?.activeProfile?.handle || '@AutoClipMain'}
           </div>
-          <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
             Used: {multiStats?.activeProfile?.usedToday || 0}/{multiStats?.activeProfile?.dailyLimit || 85} Today
           </div>
         </div>
 
-        <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #8b5cf6' }}>
+        <div className="card" style={{ padding: '1.35rem', borderLeft: '4px solid var(--primary-light)', marginBottom: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>
             Pool Remaining Uploads
           </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f8fafc', margin: '0.35rem 0' }}>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-heading)', margin: '0.35rem 0' }}>
             {multiStats?.totalRemaining || 425} Available
           </div>
-          <div style={{ fontSize: '0.78rem', color: '#a78bfa' }}>
+          <div style={{ fontSize: '0.78rem', color: 'var(--sage-dark)', fontWeight: 700 }}>
             Auto-rotates to standby upon limit
           </div>
         </div>
 
-        <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #f59e0b' }}>
+        <div className="card" style={{ padding: '1.35rem', borderLeft: '4px solid var(--sage-medium)', marginBottom: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>
             Audit Trail Events
           </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f8fafc', margin: '0.35rem 0' }}>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-heading)', margin: '0.35rem 0' }}>
             {combinedLogins.length} Logins / {rotationLogs.length} Rotations
           </div>
-          <div style={{ fontSize: '0.78rem', color: '#fbbf24' }}>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
             Persistent Local Audit Log
           </div>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--card-border)', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '2px' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1.5px solid var(--card-border)', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '2px' }}>
         <button
           type="button"
           onClick={() => setActiveTab('profiles')}
           style={{
             background: activeTab === 'profiles' ? 'var(--primary)' : 'transparent',
             border: 'none',
-            color: activeTab === 'profiles' ? '#ffffff' : '#94a3b8',
-            padding: '0.65rem 1.25rem',
+            color: activeTab === 'profiles' ? '#FFFFFF' : 'var(--text-muted)',
+            padding: '0.7rem 1.35rem',
             borderRadius: '8px 8px 0 0',
             fontWeight: 800,
             fontSize: '0.9rem',
             cursor: 'pointer',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            transition: 'all 0.2s ease'
           }}
         >
           <span>📺</span> YouTube Profiles Manager ({profiles.length})
@@ -396,15 +411,16 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
           style={{
             background: activeTab === 'rotations' ? 'var(--primary)' : 'transparent',
             border: 'none',
-            color: activeTab === 'rotations' ? '#ffffff' : '#94a3b8',
-            padding: '0.65rem 1.25rem',
+            color: activeTab === 'rotations' ? '#FFFFFF' : 'var(--text-muted)',
+            padding: '0.7rem 1.35rem',
             borderRadius: '8px 8px 0 0',
             fontWeight: 800,
             fontSize: '0.9rem',
             cursor: 'pointer',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            transition: 'all 0.2s ease'
           }}
         >
           <span>⚡</span> Rotation Audit Log ({rotationLogs.length})
@@ -416,15 +432,16 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
           style={{
             background: activeTab === 'logins' ? 'var(--primary)' : 'transparent',
             border: 'none',
-            color: activeTab === 'logins' ? '#ffffff' : '#94a3b8',
-            padding: '0.65rem 1.25rem',
+            color: activeTab === 'logins' ? '#FFFFFF' : 'var(--text-muted)',
+            padding: '0.7rem 1.35rem',
             borderRadius: '8px 8px 0 0',
             fontWeight: 800,
             fontSize: '0.9rem',
             cursor: 'pointer',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            transition: 'all 0.2s ease'
           }}
         >
           <span>📋</span> Login History ({combinedLogins.length})
@@ -436,15 +453,16 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
           style={{
             background: activeTab === 'system' ? 'var(--primary)' : 'transparent',
             border: 'none',
-            color: activeTab === 'system' ? '#ffffff' : '#94a3b8',
-            padding: '0.65rem 1.25rem',
+            color: activeTab === 'system' ? '#FFFFFF' : 'var(--text-muted)',
+            padding: '0.7rem 1.35rem',
             borderRadius: '8px 8px 0 0',
             fontWeight: 800,
             fontSize: '0.9rem',
             cursor: 'pointer',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            transition: 'all 0.2s ease'
           }}
         >
           <span>⚙️</span> System Controls
@@ -458,25 +476,25 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: 'var(--text-heading)' }}>
                 Multi-Account YouTube Profile Manager
               </h3>
               <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                 Unlimited accounts support. Upload pipeline automatically fails over from Account 1 → Account 2 → Account N when daily quota (85) or 403 occurs.
               </p>
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.6rem' }}>
               <button
                 type="button"
                 onClick={handleResetAllQuotas}
                 disabled={isResettingQuota}
                 style={{
-                  background: 'rgba(56,189,248,0.15)',
-                  border: '1px solid rgba(56,189,248,0.3)',
-                  color: '#38bdf8',
-                  padding: '0.45rem 0.9rem',
+                  background: 'var(--card-bg)',
+                  border: '1.5px solid var(--sage)',
+                  color: 'var(--text-heading)',
+                  padding: '0.5rem 1rem',
                   borderRadius: '6px',
-                  fontSize: '0.8rem',
+                  fontSize: '0.82rem',
                   fontWeight: 700,
                   cursor: 'pointer'
                 }}
@@ -487,14 +505,15 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
                 type="button"
                 onClick={() => setShowAddModal(true)}
                 style={{
-                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  background: 'var(--primary-gradient)',
                   border: 'none',
-                  color: '#ffffff',
-                  padding: '0.45rem 1rem',
+                  color: '#FFFFFF',
+                  padding: '0.5rem 1.15rem',
                   borderRadius: '6px',
-                  fontSize: '0.8rem',
+                  fontSize: '0.82rem',
                   fontWeight: 700,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  boxShadow: '0 3px 10px var(--primary-glow)'
                 }}
               >
                 ➕ Add New Account
@@ -513,12 +532,14 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
                   key={prof.id} 
                   className="card"
                   style={{
-                    padding: '1.25rem',
+                    padding: '1.35rem',
                     border: isActive 
-                      ? '2px solid #10b981' 
-                      : (isExhausted ? '1px solid rgba(239,68,68,0.5)' : '1px solid var(--card-border)'),
+                      ? '2px solid var(--primary)' 
+                      : (isExhausted ? '1.5px solid rgba(88, 24, 39, 0.4)' : '1px solid var(--card-border)'),
                     position: 'relative',
-                    background: isActive ? 'rgba(16,185,129,0.04)' : 'var(--card-bg)'
+                    background: isActive ? '#FFFFFF' : 'var(--card-bg)',
+                    boxShadow: isActive ? '0 0 0 1px var(--primary), 0 8px 25px rgba(88, 24, 39, 0.08)' : 'var(--card-shadow)',
+                    marginBottom: 0
                   }}
                 >
                   {/* Status Pill */}
@@ -526,45 +547,45 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
                     <span style={{
                       fontSize: '0.72rem',
                       fontWeight: 800,
-                      padding: '0.2rem 0.6rem',
+                      padding: '0.2rem 0.65rem',
                       borderRadius: '12px',
                       background: isActive 
-                        ? 'rgba(16,185,129,0.2)' 
-                        : (isExhausted ? 'rgba(239,68,68,0.2)' : 'rgba(148,163,184,0.15)'),
-                      color: isActive ? '#34d399' : (isExhausted ? '#f87171' : '#94a3b8'),
-                      border: isActive ? '1px solid #10b981' : 'none'
+                        ? 'var(--primary)' 
+                        : (isExhausted ? 'rgba(88, 24, 39, 0.1)' : 'var(--sage-light)'),
+                      color: isActive ? '#FFFFFF' : (isExhausted ? 'var(--primary)' : 'var(--sage-dark)'),
+                      border: isActive ? 'none' : (isExhausted ? '1px solid rgba(88, 24, 39, 0.3)' : '1px solid var(--sage)')
                     }}>
-                      {isActive ? '🟢 ACTIVE RUNNER' : (isExhausted ? '🔴 QUOTA EXHAUSTED' : '⚪ STANDBY')}
+                      {isActive ? '● ACTIVE RUNNER' : (isExhausted ? '✕ QUOTA EXHAUSTED' : '○ STANDBY')}
                     </span>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
                       Profile #{index + 1}
                     </span>
                   </div>
 
-                  <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                  <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-heading)' }}>
                     {prof.name}
                   </h4>
-                  <div style={{ fontSize: '0.85rem', color: '#38bdf8', fontWeight: 700, marginBottom: '0.25rem' }}>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 800, marginBottom: '0.25rem' }}>
                     {prof.handle}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: '1rem' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
                     {prof.email} • {prof.subscriberCount || '100K'} Subscribers
                   </div>
 
                   {/* Quota Progress Bar */}
-                  <div style={{ marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '4px' }}>
-                      <span style={{ color: '#cbd5e1' }}>Daily Quota Usage:</span>
-                      <strong style={{ color: isExhausted ? '#f87171' : '#34d399' }}>
+                  <div style={{ marginBottom: '1.1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '5px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Daily Quota Usage:</span>
+                      <strong style={{ color: isExhausted ? 'var(--primary)' : 'var(--sage-dark)' }}>
                         {prof.usedToday} / {prof.dailyLimit} Uploads ({percent}%)
                       </strong>
                     </div>
-                    <div style={{ height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+                    <div style={{ height: '7px', background: 'var(--bg-subtle)', borderRadius: '4px', overflow: 'hidden' }}>
                       <div 
                         style={{ 
                           height: '100%', 
                           width: `${percent}%`, 
-                          background: isExhausted ? '#ef4444' : (isActive ? '#10b981' : '#6366f1'),
+                          background: isExhausted ? 'var(--primary)' : (isActive ? 'var(--primary-gradient)' : 'var(--sage)'),
                           transition: 'width 0.3s ease'
                         }} 
                       />
@@ -578,12 +599,12 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
                         type="button"
                         onClick={() => handleSetActiveAccount(prof.id)}
                         style={{
-                          background: 'rgba(16,185,129,0.15)',
-                          border: '1px solid rgba(16,185,129,0.4)',
-                          color: '#34d399',
-                          padding: '0.35rem 0.75rem',
+                          background: 'var(--primary)',
+                          border: 'none',
+                          color: '#FFFFFF',
+                          padding: '0.4rem 0.85rem',
                           borderRadius: '6px',
-                          fontSize: '0.75rem',
+                          fontSize: '0.76rem',
                           fontWeight: 700,
                           cursor: 'pointer'
                         }}
@@ -596,12 +617,12 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
                       type="button"
                       onClick={() => handleResetSingleAccount(prof.id)}
                       style={{
-                        background: 'rgba(255,255,255,0.06)',
+                        background: 'var(--bg-warm)',
                         border: '1px solid var(--card-border)',
-                        color: '#cbd5e1',
-                        padding: '0.35rem 0.75rem',
+                        color: 'var(--text)',
+                        padding: '0.4rem 0.85rem',
                         borderRadius: '6px',
-                        fontSize: '0.75rem',
+                        fontSize: '0.76rem',
                         fontWeight: 700,
                         cursor: 'pointer'
                       }}
@@ -614,12 +635,12 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
                       onClick={() => handleSimulateRotation(prof.id)}
                       title="Simulates 403 / 85 limit to verify automatic failover to next profile"
                       style={{
-                        background: 'rgba(245,158,11,0.12)',
-                        border: '1px solid rgba(245,158,11,0.3)',
-                        color: '#fbbf24',
-                        padding: '0.35rem 0.65rem',
+                        background: 'var(--sage-light)',
+                        border: '1px solid var(--sage)',
+                        color: 'var(--sage-dark)',
+                        padding: '0.4rem 0.75rem',
                         borderRadius: '6px',
-                        fontSize: '0.72rem',
+                        fontSize: '0.74rem',
                         fontWeight: 700,
                         cursor: 'pointer'
                       }}
@@ -632,16 +653,17 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
                         type="button"
                         onClick={() => handleDeleteAccount(prof.id)}
                         style={{
-                          background: 'rgba(239,68,68,0.1)',
-                          border: '1px solid rgba(239,68,68,0.3)',
-                          color: '#f87171',
-                          padding: '0.35rem 0.65rem',
+                          background: 'rgba(88, 24, 39, 0.08)',
+                          border: '1px solid rgba(88, 24, 39, 0.25)',
+                          color: 'var(--primary)',
+                          padding: '0.4rem 0.75rem',
                           borderRadius: '6px',
-                          fontSize: '0.72rem',
+                          fontSize: '0.74rem',
                           fontWeight: 700,
                           cursor: 'pointer',
                           marginLeft: 'auto'
                         }}
+                        title="Delete Profile"
                       >
                         🗑️
                       </button>
@@ -659,12 +681,12 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
       {/* ======================================================== */}
       {activeTab === 'rotations' && (
         <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: 'var(--text-heading)' }}>
                 ⚡ Intelligent Account Rotation Audit Log ({rotationLogs.length} Events)
               </h3>
-              <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                 Tracks automatic queue failovers between accounts when daily quota limits or 403 API errors are triggered.
               </p>
             </div>
@@ -673,12 +695,12 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
                 type="button"
                 onClick={handleClearRotationLogs}
                 style={{
-                  background: 'rgba(239,68,68,0.15)',
-                  border: '1px solid rgba(239,68,68,0.3)',
-                  color: '#f87171',
-                  padding: '0.35rem 0.75rem',
+                  background: 'rgba(88, 24, 39, 0.08)',
+                  border: '1px solid rgba(88, 24, 39, 0.25)',
+                  color: 'var(--primary)',
+                  padding: '0.4rem 0.85rem',
                   borderRadius: '6px',
-                  fontSize: '0.75rem',
+                  fontSize: '0.76rem',
                   fontWeight: 700,
                   cursor: 'pointer'
                 }}
@@ -689,49 +711,49 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
           </div>
 
           {rotationLogs.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
+            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
               No account rotation events recorded yet. All uploads are processing smoothly on active profiles!
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
+              <table>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid var(--card-border)', textAlign: 'left', color: 'var(--text-dim)' }}>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Timestamp</th>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>From Profile</th>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>→</th>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Rotated To</th>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Trigger Reason</th>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Pipeline Status</th>
+                  <tr>
+                    <th style={{ padding: '0.75rem 1rem' }}>Timestamp</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>From Profile</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>→</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Rotated To</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Trigger Reason</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Pipeline Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rotationLogs.map((entry) => (
-                    <tr key={entry.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                      <td style={{ padding: '0.7rem 0.75rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                    <tr key={entry.id}>
+                      <td style={{ padding: '0.8rem 1rem', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
                         {entry.readableTime}
                       </td>
-                      <td style={{ padding: '0.7rem 0.75rem', fontWeight: 700, color: '#f87171' }}>
+                      <td style={{ padding: '0.8rem 1rem', fontWeight: 800, color: 'var(--primary)' }}>
                         {entry.fromProfile}
                       </td>
-                      <td style={{ padding: '0.7rem 0.75rem', color: '#38bdf8', fontWeight: 800 }}>
+                      <td style={{ padding: '0.8rem 1rem', color: 'var(--sage)', fontWeight: 800 }}>
                         →
                       </td>
-                      <td style={{ padding: '0.7rem 0.75rem', fontWeight: 700, color: '#34d399' }}>
+                      <td style={{ padding: '0.8rem 1rem', fontWeight: 800, color: 'var(--sage-dark)' }}>
                         {entry.toProfile}
                       </td>
-                      <td style={{ padding: '0.7rem 0.75rem', color: '#cbd5e1', fontSize: '0.8rem' }}>
+                      <td style={{ padding: '0.8rem 1rem', color: 'var(--text)', fontSize: '0.82rem' }}>
                         {entry.reason}
                       </td>
-                      <td style={{ padding: '0.7rem 0.75rem' }}>
+                      <td style={{ padding: '0.8rem 1rem' }}>
                         <span style={{
                           fontSize: '0.72rem',
                           fontWeight: 800,
-                          padding: '0.2rem 0.55rem',
+                          padding: '0.25rem 0.65rem',
                           borderRadius: '12px',
-                          background: 'rgba(16,185,129,0.2)',
-                          color: '#34d399',
-                          border: '1px solid rgba(16,185,129,0.4)'
+                          background: 'var(--sage-light)',
+                          color: 'var(--sage-dark)',
+                          border: '1px solid var(--sage)'
                         }}>
                           ● UNINTERRUPTED
                         </span>
@@ -750,12 +772,12 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
       {/* ======================================================== */}
       {activeTab === 'logins' && (
         <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: 'var(--text-heading)' }}>
                 📋 Login History & Access Audit Trail ({combinedLogins.length} Events)
               </h3>
-              <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                 Detailed client-side log of user & admin authentication attempts, timestamps, status, and devices.
               </p>
             </div>
@@ -764,12 +786,12 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
                 type="button"
                 onClick={handleClearHistory}
                 style={{
-                  background: 'rgba(239,68,68,0.15)',
-                  border: '1px solid rgba(239,68,68,0.3)',
-                  color: '#f87171',
-                  padding: '0.35rem 0.75rem',
+                  background: 'rgba(88, 24, 39, 0.08)',
+                  border: '1px solid rgba(88, 24, 39, 0.25)',
+                  color: 'var(--primary)',
+                  padding: '0.4rem 0.85rem',
                   borderRadius: '6px',
-                  fontSize: '0.75rem',
+                  fontSize: '0.76rem',
                   fontWeight: 700,
                   cursor: 'pointer'
                 }}
@@ -780,62 +802,62 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
           </div>
 
           {combinedLogins.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
+            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
               No login attempts recorded yet.
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
+              <table>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid var(--card-border)', textAlign: 'left', color: 'var(--text-dim)' }}>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Timestamp</th>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Status</th>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>User / Email</th>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Role</th>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Device & Client Info</th>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>IP Address</th>
+                  <tr>
+                    <th style={{ padding: '0.75rem 1rem' }}>Timestamp</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Status</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>User / Email</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Role</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Device & Client Info</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>IP Address</th>
                   </tr>
                 </thead>
                 <tbody>
                   {combinedLogins.map((entry) => {
                     const isSuccess = entry.status === 'SUCCESS';
                     return (
-                      <tr key={entry.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                        <td style={{ padding: '0.7rem 0.75rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                      <tr key={entry.id}>
+                        <td style={{ padding: '0.8rem 1rem', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
                           {entry.readableTime}
                         </td>
-                        <td style={{ padding: '0.7rem 0.75rem' }}>
+                        <td style={{ padding: '0.8rem 1rem' }}>
                           <span style={{
                             fontSize: '0.72rem',
                             fontWeight: 800,
-                            padding: '0.2rem 0.55rem',
+                            padding: '0.25rem 0.65rem',
                             borderRadius: '12px',
-                            background: isSuccess ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)',
-                            color: isSuccess ? '#34d399' : '#f87171',
-                            border: isSuccess ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(239,68,68,0.4)'
+                            background: isSuccess ? 'var(--sage-light)' : 'rgba(88, 24, 39, 0.1)',
+                            color: isSuccess ? 'var(--sage-dark)' : 'var(--primary)',
+                            border: isSuccess ? '1px solid var(--sage)' : '1px solid rgba(88, 24, 39, 0.3)'
                           }}>
                             {isSuccess ? '● SUCCESS' : '✕ FAILED'}
                           </span>
                         </td>
-                        <td style={{ padding: '0.7rem 0.75rem', fontWeight: 700, color: '#f8fafc' }}>
+                        <td style={{ padding: '0.8rem 1rem', fontWeight: 800, color: 'var(--text-heading)' }}>
                           {entry.email}
                         </td>
-                        <td style={{ padding: '0.7rem 0.75rem' }}>
+                        <td style={{ padding: '0.8rem 1rem' }}>
                           <span style={{
-                            fontSize: '0.7rem',
+                            fontSize: '0.72rem',
                             fontWeight: 800,
-                            padding: '0.15rem 0.45rem',
+                            padding: '0.2rem 0.55rem',
                             borderRadius: '4px',
-                            background: entry.role === 'admin' ? 'rgba(239,68,68,0.2)' : 'rgba(99,102,241,0.2)',
-                            color: entry.role === 'admin' ? '#f87171' : '#818cf8'
+                            background: entry.role === 'admin' ? 'rgba(88, 24, 39, 0.1)' : 'var(--sage-light)',
+                            color: entry.role === 'admin' ? 'var(--primary)' : 'var(--sage-dark)'
                           }}>
                             {(entry.role || 'user').toUpperCase()}
                           </span>
                         </td>
-                        <td style={{ padding: '0.7rem 0.75rem', color: '#cbd5e1', fontSize: '0.8rem' }}>
+                        <td style={{ padding: '0.8rem 1rem', color: 'var(--text)', fontSize: '0.82rem' }}>
                           {entry.device}
                         </td>
-                        <td style={{ padding: '0.7rem 0.75rem', fontFamily: 'monospace', color: 'var(--text-dim)', fontSize: '0.78rem' }}>
+                        <td style={{ padding: '0.8rem 1rem', fontFamily: 'monospace', color: 'var(--text-dim)', fontSize: '0.78rem' }}>
                           {entry.ip}
                         </td>
                       </tr>
@@ -853,25 +875,25 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
       {/* ======================================================== */}
       {activeTab === 'system' && (
         <div className="card">
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '0.75rem', color: '#c084fc' }}>
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '0.85rem', color: 'var(--text-heading)' }}>
             ⚙️ App Management & Security Configuration
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
-            <div style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid var(--card-border)', borderRadius: '10px', padding: '1.25rem' }}>
-              <h4 style={{ margin: '0 0 0.5rem 0', color: '#38bdf8' }}>Public Guest Mode</h4>
-              <p style={{ margin: 0, fontSize: '0.82rem', color: '#94a3b8', lineHeight: 1.5 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginTop: '1rem' }}>
+            <div style={{ background: 'var(--bg-warm)', border: '1px solid var(--card-border)', borderRadius: '10px', padding: '1.35rem' }}>
+              <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-heading)' }}>Public Guest Mode</h4>
+              <p style={{ margin: 0, fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>
                 Active. Unauthenticated visitors can create clips, slice videos, and download MP4s freely without login barriers.
               </p>
             </div>
-            <div style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid var(--card-border)', borderRadius: '10px', padding: '1.25rem' }}>
-              <h4 style={{ margin: '0 0 0.5rem 0', color: '#a78bfa' }}>Multi-Account Circuit Breaker</h4>
-              <p style={{ margin: 0, fontSize: '0.82rem', color: '#94a3b8', lineHeight: 1.5 }}>
+            <div style={{ background: 'var(--bg-warm)', border: '1px solid var(--card-border)', borderRadius: '10px', padding: '1.35rem' }}>
+              <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary)' }}>Multi-Account Circuit Breaker</h4>
+              <p style={{ margin: 0, fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>
                 Intelligently balances upload traffic across all {profiles.length} connected YouTube accounts up to {multiStats?.totalCapacity || 425} uploads daily.
               </p>
             </div>
-            <div style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid var(--card-border)', borderRadius: '10px', padding: '1.25rem' }}>
-              <h4 style={{ margin: '0 0 0.5rem 0', color: '#34d399' }}>Security Alert Testing</h4>
-              <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.82rem', color: '#94a3b8', lineHeight: 1.5 }}>
+            <div style={{ background: 'var(--bg-warm)', border: '1px solid var(--card-border)', borderRadius: '10px', padding: '1.35rem' }}>
+              <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--sage-dark)' }}>Security Alert Testing</h4>
+              <p style={{ margin: '0 0 0.85rem 0', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>
                 Dispatches an audit security alert event directly to the persistent browser log.
               </p>
               <button
@@ -879,14 +901,15 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
                 onClick={handleSendTestNotification}
                 disabled={isSendingTest}
                 style={{
-                  background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                  background: 'var(--primary-gradient)',
                   border: 'none',
-                  color: '#fff',
-                  padding: '0.45rem 1rem',
+                  color: '#FFFFFF',
+                  padding: '0.5rem 1.15rem',
                   borderRadius: '6px',
                   fontWeight: 700,
-                  fontSize: '0.8rem',
-                  cursor: isSendingTest ? 'not-allowed' : 'pointer'
+                  fontSize: '0.82rem',
+                  cursor: isSendingTest ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 3px 10px var(--primary-glow)'
                 }}
               >
                 🔔 {isSendingTest ? 'Sending...' : 'Dispatch Test Alert'}
@@ -900,32 +923,19 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
       {/* MODAL: ADD NEW YOUTUBE ACCOUNT */}
       {/* ======================================================== */}
       {showAddModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(5px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '1rem'
-        }}>
-          <div className="card" style={{ maxWidth: '480px', width: '100%', padding: '2rem', animation: 'scaleUp 0.25s ease-out' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '1.3rem' }}>📺</span>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#f8fafc' }}>
+        <div className="modal-overlay">
+          <div className="modal-card" style={{ maxWidth: '480px', width: '100%', padding: '2.25rem', animation: 'scaleUp 0.25s ease-out' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <span style={{ fontSize: '1.4rem' }}>📺</span>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-heading)' }}>
                   Add New YouTube Profile
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
-                style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '1.2rem', cursor: 'pointer' }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '1.25rem', cursor: 'pointer' }}
               >
                 ✕
               </button>
@@ -933,7 +943,7 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
 
             <form onSubmit={handleAddNewAccount}>
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '4px' }}>
                   Channel Name *
                 </label>
                 <input
@@ -942,12 +952,12 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
                   placeholder="e.g. Viral Shorts Network"
                   value={newChannelName}
                   onChange={(e) => setNewChannelName(e.target.value)}
-                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'rgba(15,23,42,0.8)', border: '1px solid var(--card-border)', borderRadius: '8px', color: '#fff', fontSize: '0.85rem' }}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--bg-warm)', border: '1.5px solid var(--card-border)', borderRadius: '8px', color: 'var(--text)', fontSize: '0.88rem' }}
                 />
               </div>
 
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '4px' }}>
                   YouTube @Handle *
                 </label>
                 <input
@@ -956,12 +966,12 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
                   placeholder="e.g. @ViralShortsNetwork"
                   value={newHandle}
                   onChange={(e) => setNewHandle(e.target.value)}
-                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'rgba(15,23,42,0.8)', border: '1px solid var(--card-border)', borderRadius: '8px', color: '#fff', fontSize: '0.85rem' }}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--bg-warm)', border: '1.5px solid var(--card-border)', borderRadius: '8px', color: 'var(--text)', fontSize: '0.88rem' }}
                 />
               </div>
 
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '4px' }}>
                   Account Email
                 </label>
                 <input
@@ -969,12 +979,12 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
                   placeholder="creator@youtube.com"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
-                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'rgba(15,23,42,0.8)', border: '1px solid var(--card-border)', borderRadius: '8px', color: '#fff', fontSize: '0.85rem' }}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--bg-warm)', border: '1.5px solid var(--card-border)', borderRadius: '8px', color: 'var(--text)', fontSize: '0.88rem' }}
                 />
               </div>
 
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '4px' }}>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '4px' }}>
                   Safe Daily Upload Cap (Default: 85)
                 </label>
                 <input
@@ -983,9 +993,9 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
                   max="500"
                   value={newLimit}
                   onChange={(e) => setNewLimit(e.target.value)}
-                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'rgba(15,23,42,0.8)', border: '1px solid var(--card-border)', borderRadius: '8px', color: '#fff', fontSize: '0.85rem' }}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--bg-warm)', border: '1.5px solid var(--card-border)', borderRadius: '8px', color: 'var(--text)', fontSize: '0.88rem' }}
                 />
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '4px', display: 'block' }}>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginTop: '4px', display: 'block' }}>
                   Adds +{newLimit || 85} to total daily system capacity.
                 </span>
               </div>
@@ -995,10 +1005,10 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
                   type="button"
                   onClick={() => setShowAddModal(false)}
                   style={{
-                    background: 'rgba(255,255,255,0.08)',
+                    background: 'var(--bg-subtle)',
                     border: '1px solid var(--card-border)',
-                    color: '#cbd5e1',
-                    padding: '0.6rem 1.1rem',
+                    color: 'var(--text-muted)',
+                    padding: '0.6rem 1.15rem',
                     borderRadius: '8px',
                     fontWeight: 700,
                     fontSize: '0.85rem',
@@ -1010,14 +1020,15 @@ export default function AdminDashboard({ isAdmin, onBackToStudio, onShowToast })
                 <button
                   type="submit"
                   style={{
-                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    background: 'var(--primary-gradient)',
                     border: 'none',
-                    color: '#ffffff',
-                    padding: '0.6rem 1.25rem',
+                    color: '#FFFFFF',
+                    padding: '0.6rem 1.35rem',
                     borderRadius: '8px',
                     fontWeight: 700,
                     fontSize: '0.85rem',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    boxShadow: '0 3px 10px var(--primary-glow)'
                   }}
                 >
                   Save Account

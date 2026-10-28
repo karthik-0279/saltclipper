@@ -4,13 +4,14 @@ import React from 'react';
  * Header Component
  * Displays brand logo, public access status, user identity badge,
  * admin toggle, and discreet administrator login portal.
+ * Styled with Muted Sage Gray, Warm Cream Beige, and Deep Burgundy.
  */
 export default function Header({ 
   user, 
   isAdmin, 
   currentView, 
   onToggleView, 
-  onLogout,
+  onLogout, 
   onOpenAdminLogin 
 }) {
   const userInitial = (user?.name || user?.email || 'G').charAt(0).toUpperCase();
@@ -28,16 +29,16 @@ export default function Header({
           <>
             {/* Admin Profile Pill */}
             <div className="user-profile-badge" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <div className="user-avatar" style={{ background: '#ef4444' }}>{userInitial}</div>
-              <span className="user-name">{user?.name || 'Administrator'}</span>
+              <div className="user-avatar">{userInitial}</div>
+              <span className="user-name" style={{ color: 'var(--text)', fontWeight: 700 }}>{user?.name || 'Administrator'}</span>
               <span style={{
                 fontSize: '0.7rem',
                 fontWeight: 800,
                 padding: '0.15rem 0.5rem',
                 borderRadius: '12px',
-                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(220, 38, 38, 0.35))',
-                color: '#f87171',
-                border: '1px solid rgba(239, 68, 68, 0.4)',
+                background: 'rgba(88, 24, 39, 0.1)',
+                color: 'var(--primary)',
+                border: '1px solid rgba(88, 24, 39, 0.3)',
                 textTransform: 'uppercase'
               }}>
                 👑 Admin
@@ -50,21 +51,22 @@ export default function Header({
               onClick={onToggleView}
               style={{
                 background: currentView === 'admin' 
-                  ? 'linear-gradient(135deg, var(--primary), #4f46e5)' 
-                  : 'rgba(239, 68, 68, 0.15)',
+                  ? 'var(--primary-gradient)' 
+                  : 'var(--sage-light)',
                 border: currentView === 'admin'
                   ? '1px solid var(--primary)'
-                  : '1px solid rgba(239, 68, 68, 0.4)',
-                color: currentView === 'admin' ? '#ffffff' : '#f87171',
+                  : '1px solid var(--sage)',
+                color: currentView === 'admin' ? '#FFFFFF' : 'var(--sage-dark)',
                 borderRadius: '8px',
-                padding: '0.45rem 0.85rem',
+                padding: '0.45rem 0.95rem',
                 fontWeight: 700,
-                fontSize: '0.8rem',
+                fontSize: '0.82rem',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '5px',
-                transition: 'all 0.2s ease'
+                gap: '6px',
+                transition: 'all 0.2s ease',
+                boxShadow: currentView === 'admin' ? '0 2px 8px var(--primary-glow)' : 'none'
               }}
               title={currentView === 'admin' ? 'Switch to video clipping studio' : 'Open security & user oversight console'}
             >
@@ -90,15 +92,15 @@ export default function Header({
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '0.35rem 0.75rem',
+              padding: '0.35rem 0.85rem',
               borderRadius: '20px',
-              background: 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              color: '#34d399',
+              background: 'var(--sage-light)',
+              border: '1px solid var(--sage)',
+              color: 'var(--sage-dark)',
               fontSize: '0.78rem',
               fontWeight: 700
             }}>
-              <span>●</span>
+              <span style={{ color: 'var(--sage-medium)' }}>●</span>
               <span>Free Public Access</span>
             </div>
 
@@ -107,18 +109,19 @@ export default function Header({
               type="button"
               onClick={onOpenAdminLogin}
               style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                color: '#94a3b8',
+                background: 'var(--card-bg)',
+                border: '1px solid var(--card-border)',
+                color: 'var(--text-muted)',
                 borderRadius: '8px',
-                padding: '0.4rem 0.75rem',
+                padding: '0.4rem 0.85rem',
                 fontSize: '0.78rem',
-                fontWeight: 600,
+                fontWeight: 700,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
               }}
               title="Administrator login portal"
             >

@@ -3,6 +3,7 @@ import React, { useRef, useEffect } from 'react';
 /**
  * PhonePlayer Component
  * Renders the video in a 9:16 mobile smartphone mockup frame (embedded YouTube or local video).
+ * Styled with sleek Deep Burgundy and Muted Sage details.
  */
 export default function PhonePlayer({ 
   currentClip, 
@@ -43,9 +44,9 @@ export default function PhonePlayer({
           />
         ) : (
           <div className="player-empty-state">
-            <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>📱</div>
-            <p style={{ fontWeight: 700, color: '#f1f5f9' }}>9:16 Mobile Viewport</p>
-            <p style={{ fontSize: '0.8rem', marginTop: '4px' }}>Paste a link above to preview viral clips</p>
+            <div style={{ fontSize: '3rem', marginBottom: '0.75rem', color: 'var(--sage)' }}>📱</div>
+            <p style={{ fontWeight: 800, color: '#F5F2EB', fontSize: '1.05rem' }}>9:16 Mobile Viewport</p>
+            <p style={{ fontSize: '0.82rem', marginTop: '6px', color: '#8A9A86' }}>Paste a link above to preview viral clips</p>
           </div>
         )}
       </div>

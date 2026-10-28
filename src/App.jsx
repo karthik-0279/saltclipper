@@ -540,12 +540,12 @@ export default function App() {
       <footer style={{
         marginTop: '3.5rem',
         padding: '1.5rem 0',
-        borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+        borderTop: '1px solid var(--card-border)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        color: '#64748b',
-        fontSize: '0.8rem',
+        color: 'var(--text-muted)',
+        fontSize: '0.82rem',
         flexWrap: 'wrap',
         gap: '0.75rem'
       }}>
@@ -553,7 +553,7 @@ export default function App() {
           <span>⚡ AutoClip AI Studio &bull; Next-Gen Short-Form Video Automation</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <span style={{ color: '#10b981', fontWeight: 600 }}>● Public Engine Ready</span>
+          <span style={{ color: 'var(--sage-dark)', fontWeight: 700 }}>● Public Engine Ready</span>
           {!isAdmin ? (
             <button
               type="button"
@@ -561,12 +561,13 @@ export default function App() {
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#64748b',
+                color: 'var(--text-muted)',
                 fontSize: '0.78rem',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px'
+                gap: '4px',
+                fontWeight: 600
               }}
               title="Administrator login portal"
             >
@@ -580,10 +581,10 @@ export default function App() {
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#f87171',
+                color: 'var(--primary)',
                 fontSize: '0.78rem',
                 cursor: 'pointer',
-                fontWeight: 700
+                fontWeight: 800
               }}
             >
               👑 {currentView === 'admin' ? 'Back to Studio' : 'Admin Dashboard'}

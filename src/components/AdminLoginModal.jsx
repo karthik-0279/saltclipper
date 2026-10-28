@@ -34,7 +34,8 @@ export function recordLoginEvent({ email, role = 'admin', status = 'SUCCESS', re
 
 /**
  * AdminLoginModal Component
- * Discreet administrator portal for unlocking the protected Admin Dashboard
+ * Discreet administrator portal for unlocking the protected Admin Dashboard.
+ * Styled with Muted Sage Gray, Warm Cream Beige, and Deep Burgundy.
  */
 export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
   const [email, setEmail] = useState('');
@@ -100,17 +101,6 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
   return (
     <div 
       className="modal-overlay"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(5, 8, 16, 0.85)',
-        backdropFilter: 'blur(8px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 9999,
-        padding: '1rem'
-      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -120,13 +110,13 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
         style={{
           width: '100%',
           maxWidth: '420px',
-          backgroundColor: '#0f172a',
-          border: '1.5px solid rgba(99, 102, 241, 0.3)',
+          backgroundColor: 'var(--card-bg)',
+          border: '1.5px solid var(--sage)',
           borderRadius: '16px',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
-          padding: '2rem',
+          boxShadow: '0 25px 60px rgba(88, 24, 39, 0.25)',
+          padding: '2.25rem',
           position: 'relative',
-          animation: 'fadeIn 0.2s ease-out'
+          animation: 'scaleUp 0.2s ease-out'
         }}
       >
         {/* Close Button */}
@@ -139,7 +129,7 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
             right: '1rem',
             background: 'transparent',
             border: 'none',
-            color: '#94a3b8',
+            color: 'var(--text-muted)',
             fontSize: '1.25rem',
             cursor: 'pointer',
             padding: '4px'
@@ -153,22 +143,23 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <div style={{ 
             fontSize: '2rem', 
-            background: 'rgba(99, 102, 241, 0.15)', 
-            width: '60px', 
-            height: '60px', 
+            background: 'var(--primary-gradient)', 
+            width: '64px', 
+            height: '64px', 
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center', 
             borderRadius: '16px', 
-            margin: '0 auto 0.75rem auto',
-            border: '1px solid rgba(99, 102, 241, 0.3)'
+            margin: '0 auto 0.85rem auto',
+            boxShadow: '0 4px 15px var(--primary-glow)',
+            color: '#FFFFFF'
           }}>
             🛡️
           </div>
-          <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>
+          <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-heading)', margin: 0 }}>
             Administrator Portal
           </h3>
-          <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: '0.35rem 0 0 0' }}>
+          <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: '0.35rem 0 0 0' }}>
             Enter administrator credentials to unlock the management dashboard.
           </p>
         </div>
@@ -176,13 +167,14 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
         {/* Error Alert */}
         {error && (
           <div style={{
-            background: 'rgba(239, 68, 68, 0.15)',
-            border: '1px solid rgba(239, 68, 68, 0.4)',
-            color: '#fca5a5',
+            background: 'rgba(88, 24, 39, 0.08)',
+            border: '1px solid rgba(88, 24, 39, 0.3)',
+            color: 'var(--primary)',
             padding: '0.75rem',
             borderRadius: '8px',
             fontSize: '0.82rem',
-            marginBottom: '1rem'
+            marginBottom: '1rem',
+            fontWeight: 700
           }}>
             ⚠️ {error}
           </div>
@@ -191,7 +183,7 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
         {/* Login Form */}
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '0.4rem' }}>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '0.4rem' }}>
               Admin Email ID
             </label>
             <input
@@ -203,11 +195,11 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
               autoFocus
               style={{
                 width: '100%',
-                padding: '0.65rem 0.85rem',
-                backgroundColor: '#1e293b',
-                border: '1px solid #334155',
+                padding: '0.7rem 0.85rem',
+                backgroundColor: 'var(--bg-warm)',
+                border: '1.5px solid var(--card-border)',
                 borderRadius: '8px',
-                color: '#f8fafc',
+                color: 'var(--text)',
                 fontSize: '0.9rem',
                 outline: 'none',
                 boxSizing: 'border-box'
@@ -216,7 +208,7 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
           </div>
 
           <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '0.4rem' }}>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '0.4rem' }}>
               Admin Password
             </label>
             <input
@@ -227,11 +219,11 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
               required
               style={{
                 width: '100%',
-                padding: '0.65rem 0.85rem',
-                backgroundColor: '#1e293b',
-                border: '1px solid #334155',
+                padding: '0.7rem 0.85rem',
+                backgroundColor: 'var(--bg-warm)',
+                border: '1.5px solid var(--card-border)',
                 borderRadius: '8px',
-                color: '#f8fafc',
+                color: 'var(--text)',
                 fontSize: '0.9rem',
                 outline: 'none',
                 boxSizing: 'border-box'
@@ -244,9 +236,9 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
             disabled={loading}
             style={{
               width: '100%',
-              padding: '0.75rem',
-              backgroundColor: '#6366f1',
-              backgroundImage: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+              padding: '0.8rem',
+              backgroundColor: 'var(--primary)',
+              backgroundImage: 'var(--primary-gradient)',
               border: 'none',
               borderRadius: '8px',
               color: '#ffffff',
@@ -255,7 +247,7 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
               cursor: loading ? 'not-allowed' : 'pointer',
               opacity: loading ? 0.7 : 1,
               transition: 'opacity 0.2s',
-              boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)'
+              boxShadow: '0 4px 15px var(--primary-glow)'
             }}
           >
             {loading ? 'Authenticating...' : 'Unlock Admin Dashboard'}
@@ -269,8 +261,9 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#64748b',
-              fontSize: '0.8rem',
+              color: 'var(--text-muted)',
+              fontSize: '0.82rem',
+              fontWeight: 600,
               cursor: 'pointer',
               textDecoration: 'underline'
             }}
@@ -282,4 +275,3 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
     </div>
   );
 }
-
