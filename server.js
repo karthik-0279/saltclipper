@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const { spawn } = require('child_process');
 const youtubeUpload = require('./services/youtubeUpload');
 const emailNotifier = require('./services/emailNotifier');
+const cloudAiPipeline = require('./services/cloudAiPipeline');
 
 const DIR = __dirname;
 const YTDLP_PATH = process.env.YTDLP_PATH || (process.platform === 'win32' 
@@ -1047,6 +1048,69 @@ const server = http.createServer(async (req, res) => {
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify(batch));
+  }
+
+  // ==========================================
+  // GOOGLE CLOUD FIRESTORE & GEMINI AI PIPELINE
+  // ==========================================
+
+  // Check Cloud AI Configuration Status
+  if (pathname === '/api/cloud-ai/status' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({
+      hasGeminiKey: !!process.env.GEMINI_API_KEY,
+      hasGoogleCredentials: !!process.env.GOOGLE_APPLICATION_CREDENTIALS,
+      geminiModel: 'gemini-2.5-flash'
+    }));
+  }
+
+  // Generate Script with Gemini directly
+  if (pathname === '/api/cloud-ai/generate' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body || '{}');
+        const summary = data.summary || data.topic || data.text;
+        if (!summary) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ error: 'summary, topic, or text is required.' }));
+        }
+
+        const script = await cloudAiPipeline.generateScriptWithGemini(summary, {
+          customPrompt: data.prompt,
+          model: data.model
+        });
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: true, script }));
+      } catch (err) {
+        console.error('[CLOUD AI ERROR]', err.message);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // Trigger Full Firestore -> Gemini AI Pipeline
+  if (pathname === '/api/cloud-ai/fetch-and-generate' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body || '{}');
+        const collection = data.collection || 'project_updates';
+        const result = await cloudAiPipeline.runPythonPipeline(collection);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: true, ...result }));
+      } catch (err) {
+        console.error('[CLOUD AI PIPELINE ERROR]', err.message);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
   }
 
   // 1. Download Whole Video: POST or GET /api/download-full-video
