@@ -507,16 +507,9 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // 5. Protected Studio Route: GET / and GET /index.html
+  // 5. Public Studio Route: GET / and GET /index.html (Instant Public Access)
   if (pathname === '/' || pathname === '/index.html') {
     setNoCacheHeaders(res);
-    const session = getSessionFromRequest(req);
-    if (!session) {
-      // Protected Route Guard: Redirect unauthenticated requests to /login
-      console.log(`[AUTH GUARD] Protected route access denied for ${pathname}. Redirecting to /login.`);
-      res.writeHead(302, { 'Location': '/login' });
-      return res.end();
-    }
     const distIndexPath = path.join(DIR, 'dist', 'index.html');
     const indexFilePath = fs.existsSync(distIndexPath) ? distIndexPath : path.join(DIR, 'index.html');
     res.writeHead(200, { 'Content-Type': 'text/html' });

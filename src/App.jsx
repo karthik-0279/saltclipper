@@ -8,6 +8,7 @@ import ExportCenter from './components/ExportCenter';
 import ConfigModal from './components/ConfigModal';
 import Toast from './components/Toast';
 import AdminDashboard from './components/AdminDashboard';
+import AdminLoginModal from './components/AdminLoginModal';
 import { 
   fetchAuthUser, 
   logoutUser, 
@@ -23,8 +24,9 @@ import {
 export default function App() {
   // --- User & Authentication State ---
   const [currentUser, setCurrentUser] = useState(null);
-  const [token] = useState(() => localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || null);
+  const [token, setToken] = useState(() => localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || null);
   const [currentView, setCurrentView] = useState('studio'); // 'studio' | 'admin'
+  const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
 
   const isAdmin = currentUser?.role === 'admin';
 
@@ -71,18 +73,23 @@ export default function App() {
     setTimeout(() => setToastMsg(''), 3500);
   }, []);
 
-  // 1. Authenticate user on initial mount
+  // 1. Authenticate user on initial mount (Public Access First - Zero Forced Login)
   useEffect(() => {
     async function verifyUser() {
+      if (!token) return; // Public guest mode: user can freely use the app immediately!
       try {
         const data = await fetchAuthUser(token);
         if (data?.authenticated) {
           setCurrentUser(data.user);
         } else {
-          window.location.replace('/login');
+          setToken(null);
+          setCurrentUser(null);
+          localStorage.removeItem('auth_token');
         }
       } catch (err) {
-        window.location.replace('/login');
+        setToken(null);
+        setCurrentUser(null);
+        localStorage.removeItem('auth_token');
       }
     }
     verifyUser();
@@ -130,16 +137,28 @@ export default function App() {
     };
   }, []);
 
-  // 3. User Logout
+  // 3. Admin Authentication Handlers
+  const handleAdminLoginSuccess = (newToken, user) => {
+    setToken(newToken);
+    setCurrentUser(user);
+    setCurrentView('admin');
+    showToast(`Welcome back, ${user.name || 'Administrator'}!`);
+  };
+
   const handleLogout = useCallback(async () => {
     try {
-      localStorage.clear();
-      sessionStorage.clear();
-      await logoutUser(token);
+      localStorage.removeItem('auth_token');
+      sessionStorage.removeItem('auth_token');
+      if (token) await logoutUser(token);
+    } catch (e) {
+      console.warn('Logout notice:', e);
     } finally {
-      window.location.replace('/login');
+      setToken(null);
+      setCurrentUser(null);
+      setCurrentView('studio');
+      showToast('Logged out from admin. Switched to public guest mode.');
     }
-  }, [token]);
+  }, [token, showToast]);
 
   // 4. Video Analysis & Clip Generation
   const handleAnalyzeUrl = (url) => {
@@ -235,7 +254,6 @@ export default function App() {
               });
               setRenderStatusText('🎉 Published to YouTube Shorts!');
               showToast('🎉 Published to YouTube Shorts successfully!');
-              // Do NOT trigger local duplicate browser download
             } else {
               // Trigger single clean MP4 download
               const artifactUrl = `/api/download-artifact?jobId=${encodeURIComponent(jobId)}`;
@@ -248,39 +266,97 @@ export default function App() {
               setRenderStatusText('✅ Playable MP4 Video Ready & Downloaded!');
               showToast('✅ Video rendered and downloaded!');
             }
+            refreshQuota();
           } else if (status.status === 'ERROR') {
             clearInterval(pollIntervalRef.current);
             setIsRendering(false);
-            setRenderStatusText(`❌ Error: ${status.error}`);
-            showToast(`Render Error: ${status.error}`);
+            setRenderStatusText(`Error: ${status.error || 'Render failed'}`);
+            showToast(`Rendering failed: ${status.error}`);
           }
         } catch (pollErr) {
-          console.error('Polling error', pollErr);
+          console.error('Polling error:', pollErr);
         }
-      }, 1000);
+      }, 1500);
 
     } catch (err) {
       setIsRendering(false);
-      setRenderStatusText(`❌ Error: ${err.message}`);
-      showToast(err.message);
+      setRenderStatusText(`Failed: ${err.message}`);
+      showToast(`Error: ${err.message}`);
     }
   };
 
-  // 6. Batch Upload ALL Generated Clips to YouTube Shorts (Sequential Series Pipeline)
+  // 6. Individual Clip Upload Handler
+  const handleUploadSingleClip = async (clipOrIndex) => {
+    let clipToUpload = typeof clipOrIndex === 'number' ? clips[clipOrIndex] : clipOrIndex;
+    if (!clipToUpload && clips.length > 0) clipToUpload = clips[activeClipIndex];
+    if (!clipToUpload) return;
+
+    const clipId = clipToUpload.id;
+    setUploadingClipId(clipId);
+    setClipUploads(prev => ({
+      ...prev,
+      [clipId]: { uploading: true, error: null }
+    }));
+    showToast(`Initiating direct upload for Clip #${clipId}...`);
+
+    try {
+      const renderRes = await initiateClipRender({
+        sourceUrl: videoUrl,
+        startTime: clipToUpload.startSec,
+        endTime: clipToUpload.endSec,
+        aspect: ratio,
+        clipId: clipId,
+        autoUploadYouTube: true,
+        privacyStatus: ytPrivacy,
+        title: clipToUpload.title
+      });
+
+      const jobId = renderRes.jobId;
+      const pollTimer = setInterval(async () => {
+        try {
+          const status = await pollJobStatus(jobId);
+          if (status.status === 'COMPLETED') {
+            clearInterval(pollTimer);
+            setUploadingClipId(null);
+            setClipUploads(prev => ({
+              ...prev,
+              [clipId]: {
+                uploading: false,
+                uploaded: true,
+                shortsUrl: status.youtubeUrl,
+                videoId: status.youtubeVideoId
+              }
+            }));
+            showToast(`🎉 Clip #${clipId} Uploaded to YouTube Shorts!`);
+            refreshQuota();
+          } else if (status.status === 'ERROR') {
+            clearInterval(pollTimer);
+            setUploadingClipId(null);
+            setClipUploads(prev => ({
+              ...prev,
+              [clipId]: { uploading: false, error: status.error || 'Upload failed' }
+            }));
+            showToast(`Upload failed for Clip #${clipId}: ${status.error}`);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }, 1500);
+
+    } catch (err) {
+      setUploadingClipId(null);
+      setClipUploads(prev => ({
+        ...prev,
+        [clipId]: { uploading: false, error: err.message }
+      }));
+      showToast(`Error: ${err.message}`);
+    }
+  };
+
+  // 7. Batch Upload All Clips with Circuit Breaker
   const handleUploadAllToYouTube = async () => {
     if (!clips || clips.length === 0) {
-      showToast('No clips generated yet. Paste a video link first!');
-      return;
-    }
-
-    if (!ytStatus?.isConnected) {
-      showToast('⚠️ Please click "Connect YouTube" in the bar above before uploading to YouTube Shorts!');
-      return;
-    }
-
-    const effectiveUrl = videoUrl || (youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : '');
-    if (!effectiveUrl) {
-      showToast('Please provide a valid source video URL');
+      showToast('No clips available to upload.');
       return;
     }
 
@@ -290,161 +366,96 @@ export default function App() {
       currentPart: 1,
       totalParts: clips.length,
       progress: 5,
-      step: `Initializing sequential upload of all ${clips.length} clips...`,
-      uploadedClips: []
+      step: `Initializing batch upload of ${clips.length} clips with Circuit Breaker protection...`,
+      uploadedClips: [],
+      failedClips: []
     });
 
     try {
-      const res = await uploadAllClipsToYouTube({
-        sourceUrl: effectiveUrl,
-        clips: clips,
+      const initRes = await uploadAllClipsToYouTube({
+        sourceUrl: videoUrl,
+        clips: clips.map(c => ({
+          clipId: c.id,
+          startSec: c.startSec,
+          endSec: c.endSec,
+          title: c.title
+        })),
         aspect: ratio,
         privacyStatus: ytPrivacy
       });
 
-      const batchId = res.batchId;
-      showToast(`⚡ Batch upload started for ${clips.length} clips!`);
-
-      const batchInterval = setInterval(async () => {
+      const batchId = initRes.batchId;
+      const batchTimer = setInterval(async () => {
         try {
-          const status = await pollBatchStatus(batchId);
-          setBatchStatus(status);
+          const pollRes = await pollBatchStatus(batchId);
+          setBatchStatus(pollRes);
 
-          if (status.status === 'COMPLETED') {
-            clearInterval(batchInterval);
+          if (pollRes.status === 'COMPLETED' || pollRes.status === 'HALTED' || pollRes.status === 'ERROR') {
+            clearInterval(batchTimer);
             setIsBatchUploading(false);
+            refreshQuota();
 
-            // Populate all uploaded clips in clipUploads dictionary
-            if (status.uploadedClips) {
-              const newMap = {};
-              status.uploadedClips.forEach(item => {
-                newMap[item.clipId] = { videoId: item.videoId, shortsUrl: item.shortsUrl };
-              });
-              setClipUploads(prev => ({ ...prev, ...newMap }));
+            if (pollRes.status === 'COMPLETED') {
+              showToast(`🎉 Batch Upload Complete! Uploaded ${pollRes.uploadedClips?.length || 0} clips.`);
+            } else if (pollRes.status === 'HALTED') {
+              showToast('⚠️ Batch halted by Safe Circuit Breaker cap.');
+            } else {
+              showToast(`Batch ended: ${pollRes.error || 'Error occurred'}`);
             }
-
-            showToast(`🎉 Success! All ${status.uploadedClips?.length || clips.length} clips uploaded to YouTube Shorts!`);
-            refreshQuota();
-          } else if (status.status === 'HALTED') {
-            clearInterval(batchInterval);
-            setIsBatchUploading(false);
-            showToast(`⚠️ Batch halted: ${status.error || 'Safe quota cap reached'}`);
-            refreshQuota();
-          } else if (status.status === 'ERROR') {
-            clearInterval(batchInterval);
-            setIsBatchUploading(false);
-            showToast(`❌ Batch Upload note: ${status.error || 'Stopped'}`);
-            refreshQuota();
           }
-        } catch (pollErr) {
-          console.error('Batch poll error', pollErr);
+        } catch (bErr) {
+          console.error('Batch polling error:', bErr);
         }
-      }, 1500);
+      }, 2500);
 
     } catch (err) {
       setIsBatchUploading(false);
-      showToast(`Failed to start batch upload: ${err.message}`);
-    }
-  };
-
-  // 7. Individual One-by-One Upload to YouTube Shorts
-  const handleUploadSingleClip = async (index) => {
-    const clip = clips[index];
-    if (!clip) return;
-
-    if (!ytStatus?.isConnected) {
-      showToast('⚠️ Please click "Connect YouTube" in the bar above first before uploading clips!');
-      return;
-    }
-
-    const effectiveUrl = videoUrl || (youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : '');
-    if (!effectiveUrl) {
-      showToast('Please provide a valid video link first');
-      return;
-    }
-
-    setUploadingClipId(clip.id);
-    showToast(`🚀 Uploading Clip #${clip.id} to YouTube Shorts...`);
-
-    try {
-      const startRes = await initiateClipRender({
-        sourceUrl: effectiveUrl,
-        startTime: clip.startSec,
-        endTime: clip.endSec,
-        aspect: ratio,
-        clipId: clip.id,
-        autoUploadYouTube: true, // EXPLICIT ONE-BY-ONE UPLOAD
-        privacyStatus: ytPrivacy,
-        title: clip.title
+      setBatchStatus({
+        status: 'ERROR',
+        error: err.message,
+        currentPart: 0,
+        totalParts: clips.length,
+        progress: 0,
+        step: `Failed to initiate batch upload: ${err.message}`
       });
-
-      const jobId = startRes.jobId;
-
-      const interval = setInterval(async () => {
-        try {
-          const status = await pollJobStatus(jobId);
-
-          if (status.status === 'COMPLETED') {
-            clearInterval(interval);
-            setUploadingClipId(null);
-
-            if (status.uploadStatus === 'UPLOADED') {
-              setClipUploads(prev => ({
-                ...prev,
-                [clip.id]: {
-                  videoId: status.youtubeVideoId,
-                  shortsUrl: status.youtubeUrl
-                }
-              }));
-              showToast(`🎉 Clip #${clip.id} uploaded to YouTube Shorts!`);
-            } else {
-              showToast(`Upload note: ${status.uploadError || 'Rendered but upload failed'}`);
-            }
-          } else if (status.status === 'ERROR') {
-            clearInterval(interval);
-            setUploadingClipId(null);
-            showToast(`❌ Error: ${status.error}`);
-          }
-        } catch (e) {
-          console.error('Polling error', e);
-        }
-      }, 1200);
-
-    } catch (err) {
-      setUploadingClipId(null);
-      showToast(`Upload failed: ${err.message}`);
+      showToast(`Batch upload error: ${err.message}`);
     }
   };
 
+  // 8. Save Credentials Configuration
   const handleSaveConfig = async (clientId, clientSecret) => {
     try {
       await saveYouTubeConfig(clientId, clientSecret);
+      showToast('OAuth 2.0 Credentials saved successfully!');
       setIsConfigOpen(false);
-      showToast('OAuth credentials saved successfully!');
       refreshYouTubeStatus();
-    } catch (e) {
-      showToast(`Failed: ${e.message}`);
+    } catch (err) {
+      showToast(`Error saving config: ${err.message}`);
     }
   };
 
   return (
     <div className="container">
+      {/* Top Header */}
       <Header 
         user={currentUser} 
         isAdmin={isAdmin}
         currentView={currentView}
         onToggleView={() => setCurrentView(prev => prev === 'admin' ? 'studio' : 'admin')}
-        onLogout={handleLogout} 
+        onLogout={handleLogout}
+        onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
       />
 
-      {/* Render Admin Dashboard View when active and user is admin */}
+      {/* Render Protected Admin Dashboard when active and authorized */}
       {currentView === 'admin' && isAdmin ? (
         <AdminDashboard 
+          isAdmin={isAdmin}
           onBackToStudio={() => setCurrentView('studio')}
           onShowToast={showToast}
         />
       ) : (
         <>
+          {/* YouTube Connection & Quota Tracker Bar */}
           <YouTubeBar 
             ytStatus={ytStatus}
             autoUpload={autoUploadYT}
@@ -457,6 +468,7 @@ export default function App() {
             quota={ytQuota}
           />
 
+          {/* Hero Section */}
           <section className="hero">
             <div className="hero-badge">
               <span>🤖</span>
@@ -466,6 +478,7 @@ export default function App() {
             <p>AI detects dialogue intensity, curiosity gaps, and retention spikes across the entire video to produce unlimited 60s–70s clips with forecasted reach potential.</p>
           </section>
 
+          {/* Video Input Box */}
           <VideoInput 
             mode={mode}
             onSelectMode={setMode}
@@ -474,8 +487,9 @@ export default function App() {
             isAnalyzing={isAnalyzing}
           />
 
+          {/* Main Studio Grid */}
           <main className="studio-grid">
-            {/* Left Column: 9:16 Vertical Video Player */}
+            {/* Left Column: 9:16 Vertical Phone Video Player */}
             <div>
               <PhonePlayer 
                 currentClip={clips[activeClipIndex]}
@@ -520,12 +534,77 @@ export default function App() {
         </>
       )}
 
+      {/* Discreet Footer with Admin Portal Access */}
+      <footer style={{
+        marginTop: '3.5rem',
+        padding: '1.5rem 0',
+        borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        color: '#64748b',
+        fontSize: '0.8rem',
+        flexWrap: 'wrap',
+        gap: '0.75rem'
+      }}>
+        <div>
+          <span>⚡ AutoClip AI Studio &bull; Next-Gen Short-Form Video Automation</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <span style={{ color: '#10b981', fontWeight: 600 }}>● Public Engine Ready</span>
+          {!isAdmin ? (
+            <button
+              type="button"
+              onClick={() => setIsAdminLoginOpen(true)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#64748b',
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+              title="Administrator login portal"
+            >
+              <span>🔒</span>
+              <span>Admin Portal</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setCurrentView(currentView === 'admin' ? 'studio' : 'admin')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#f87171',
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                fontWeight: 700
+              }}
+            >
+              👑 {currentView === 'admin' ? 'Back to Studio' : 'Admin Dashboard'}
+            </button>
+          )}
+        </div>
+      </footer>
+
+      {/* Admin Login Modal (Discreet popup) */}
+      <AdminLoginModal
+        isOpen={isAdminLoginOpen}
+        onClose={() => setIsAdminLoginOpen(false)}
+        onLoginSuccess={handleAdminLoginSuccess}
+      />
+
+      {/* YouTube OAuth Configuration Modal */}
       <ConfigModal 
         isOpen={isConfigOpen}
         onClose={() => setIsConfigOpen(false)}
         onSave={handleSaveConfig}
       />
 
+      {/* Floating Notifications */}
       <Toast message={toastMsg} />
     </div>
   );

@@ -47,3 +47,4 @@ Write-Host "Successfully built and pushed to GitHub!" -ForegroundColor Green
 Write-Host "Repository: https://github.com/karthik-0279/saltclipper" -ForegroundColor Green
 Write-Host "======================================================" -ForegroundColor Green
 Write-Host ""
+

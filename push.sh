@@ -50,3 +50,4 @@ echo -e "\n${GREEN}======================================================${NC}"
 echo -e "${GREEN}🎉 Successfully built and pushed to GitHub!${NC}"
 echo -e "${GREEN}Repository: https://github.com/karthik-0279/saltclipper${NC}"
 echo -e "${GREEN}======================================================${NC}\n"
+
