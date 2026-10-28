@@ -282,3 +282,4 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
     </div>
   );
 }
+
