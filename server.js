@@ -3,10 +3,85 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const bcrypt = require('bcrypt');
 const { spawn } = require('child_process');
 const youtubeUpload = require('./services/youtubeUpload');
 const emailNotifier = require('./services/emailNotifier');
 const cloudAiPipeline = require('./services/cloudAiPipeline');
+
+// ==========================================
+// SECURITY CONSTANTS & HELPERS
+// ==========================================
+const BCRYPT_SALT_ROUNDS = 12;
+const MAX_BODY_SIZE = 1 * 1024 * 1024; // 1 MB max request body
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:8080,http://localhost:5173').split(',').map(o => o.trim());
+
+// Rate limiter: IP -> { count, windowStart }
+const rateLimitStore = new Map();
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const RATE_LIMIT_MAX_LOGIN = 10;    // Max login attempts per window
+const RATE_LIMIT_MAX_REGISTER = 5;  // Max registrations per window
+const RATE_LIMIT_MAX_EXPORT = 20;   // Max export/render requests per window
+
+function getRateLimitKey(ip, action) {
+  return `${ip}::${action}`;
+}
+
+function checkRateLimit(ip, action, maxAttempts) {
+  const key = getRateLimitKey(ip, action);
+  const now = Date.now();
+  const entry = rateLimitStore.get(key);
+
+  if (!entry || (now - entry.windowStart > RATE_LIMIT_WINDOW_MS)) {
+    rateLimitStore.set(key, { count: 1, windowStart: now });
+    return { allowed: true, remaining: maxAttempts - 1 };
+  }
+
+  if (entry.count >= maxAttempts) {
+    const retryAfterSec = Math.ceil((RATE_LIMIT_WINDOW_MS - (now - entry.windowStart)) / 1000);
+    return { allowed: false, remaining: 0, retryAfterSec };
+  }
+
+  entry.count++;
+  return { allowed: true, remaining: maxAttempts - entry.count };
+}
+
+// Clean up stale rate limit entries every 10 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitStore.entries()) {
+    if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS) rateLimitStore.delete(key);
+  }
+}, 10 * 60 * 1000);
+
+// Safely read request body with size limit
+function readBody(req, maxSize = MAX_BODY_SIZE) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    let size = 0;
+    req.on('data', chunk => {
+      size += chunk.length;
+      if (size > maxSize) {
+        req.destroy();
+        reject(new Error('Request body too large'));
+        return;
+      }
+      body += chunk;
+    });
+    req.on('end', () => resolve(body));
+    req.on('error', reject);
+  });
+}
+
+// HTML escape helper to prevent XSS in server-rendered HTML
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
 
 const DIR = __dirname;
 const YTDLP_PATH = process.env.YTDLP_PATH || (process.platform === 'win32' 
@@ -157,6 +232,56 @@ function executeTrimPipeline(jobId, videoUrl, startSec, endSec, aspect, onProgre
 // ==========================================
 // AUTHENTICATION & SECURE SESSION STORE
 // ==========================================
+
+// Safe constant-time string and hash comparison against timing attacks
+function safeCompare(inputPlain, storedSecretOrHash) {
+  if (typeof inputPlain !== 'string' || typeof storedSecretOrHash !== 'string') return false;
+  // Support bcrypt hashes ($2a$, $2b$) if stored as bcrypt
+  if (bcrypt && storedSecretOrHash.startsWith('$2')) {
+    try {
+      return bcrypt.compareSync(inputPlain, storedSecretOrHash);
+    } catch (e) {
+      return false;
+    }
+  }
+  // Constant-time SHA-256 buffer comparison (ensures equal 32-byte length)
+  const bufA = crypto.createHash('sha256').update(inputPlain).digest();
+  const bufB = crypto.createHash('sha256').update(storedSecretOrHash).digest();
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+// In-Memory Brute-Force Rate Limiter for Login Endpoints (5 attempts / 10 minutes)
+const loginRateLimiter = new Map();
+function checkServerRateLimit(ip) {
+  const now = Date.now();
+  const record = loginRateLimiter.get(ip) || { count: 0, firstAttempt: now, lockedUntil: 0 };
+  if (record.lockedUntil && now < record.lockedUntil) {
+    const waitSec = Math.ceil((record.lockedUntil - now) / 1000);
+    return { allowed: false, waitSec };
+  }
+  if (now - record.firstAttempt > 10 * 60 * 1000) {
+    record.count = 0;
+    record.firstAttempt = now;
+    record.lockedUntil = 0;
+  }
+  loginRateLimiter.set(ip, record);
+  return { allowed: true };
+}
+
+function recordServerFailedLogin(ip) {
+  const now = Date.now();
+  const record = loginRateLimiter.get(ip) || { count: 0, firstAttempt: now, lockedUntil: 0 };
+  record.count += 1;
+  if (record.count >= 5) {
+    record.lockedUntil = now + 10 * 60 * 1000;
+  }
+  loginRateLimiter.set(ip, record);
+}
+
+function clearServerRateLimit(ip) {
+  loginRateLimiter.delete(ip);
+}
+
 const activeSessions = new Map(); // token -> { userId, email, name, createdAt, expiresAt }
 const revokedTokens = new Set();  // Blacklist of invalidated tokens to prevent token reuse
 
@@ -164,14 +289,32 @@ const revokedTokens = new Set();  // Blacklist of invalidated tokens to prevent 
 const ADMIN_ID = (process.env.ADMIN_ID || '').trim().toLowerCase();
 const ADMIN_PASSWORD = (process.env.ADMIN_PASSWORD || '').trim();
 
+// Pre-hash the admin password at startup for secure comparison
+let ADMIN_PASSWORD_HASH = null;
+(async () => {
+  if (ADMIN_PASSWORD) {
+    ADMIN_PASSWORD_HASH = await bcrypt.hash(ADMIN_PASSWORD, BCRYPT_SALT_ROUNDS);
+    console.log('[SECURITY] Admin password hashed with bcrypt (salt rounds:', BCRYPT_SALT_ROUNDS, ')');
+  }
+})();
+
 if (!ADMIN_ID || !ADMIN_PASSWORD) {
   console.warn('[SECURITY WARNING] ⚠️ ADMIN_ID and/or ADMIN_PASSWORD is not configured in .env. Admin login is disabled until configured.');
 }
 
 // Seeded Accounts (Strictly configured via environment variables)
 const USERS = [
-  ...(ADMIN_ID && ADMIN_PASSWORD ? [{ id: 'usr_admin', email: ADMIN_ID, password: ADMIN_PASSWORD, name: 'System Administrator', role: 'admin' }] : [])
+  ...(ADMIN_ID && ADMIN_PASSWORD ? [{ id: 'usr_admin', email: ADMIN_ID, passwordHash: null /* set async below */, name: 'System Administrator', role: 'admin' }] : [])
 ];
+
+// Set admin user's hash once ready
+(async () => {
+  if (ADMIN_PASSWORD) {
+    const hash = await bcrypt.hash(ADMIN_PASSWORD, BCRYPT_SALT_ROUNDS);
+    const adminUser = USERS.find(u => u.id === 'usr_admin');
+    if (adminUser) adminUser.passwordHash = hash;
+  }
+})();
 
 function generateToken() {
   return crypto.randomBytes(32).toString('hex');
@@ -221,9 +364,10 @@ function getSessionFromRequest(req) {
 }
 
 function setAuthCookies(res, token) {
-  // Set secure HTTP-Only, SameSite=Strict cookies
-  const authCookie = `auth_token=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400`;
-  const sessionCookie = `session_id=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400`;
+  // Set secure HTTP-Only, SameSite=Strict cookies with Secure flag in production
+  const securePart = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  const authCookie = `auth_token=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400${securePart}`;
+  const sessionCookie = `session_id=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400${securePart}`;
   res.setHeader('Set-Cookie', [authCookie, sessionCookie]);
 }
 
@@ -244,8 +388,19 @@ function setNoCacheHeaders(res) {
 }
 
 const server = http.createServer(async (req, res) => {
-  // Global CORS Headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Global Security Headers (Helmet-equivalent hardening)
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
+  // CORS — Restrict to allowed origins only (no wildcard)
+  const requestOrigin = req.headers.origin;
+  if (requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin)) {
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range, Authorization, Accept');
   res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition, Content-Length, Content-Type');
@@ -268,23 +423,38 @@ const server = http.createServer(async (req, res) => {
     req.on('data', chunk => { body += chunk; });
     req.on('end', async () => {
       try {
+        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+        const clientUa = req.headers['user-agent'] || 'Unknown Browser';
+
+        // Rate Limiting Check (Anti-DDoS / Brute-force protection)
+        const rateCheck = checkServerRateLimit(clientIp);
+        if (!rateCheck.allowed) {
+          res.writeHead(429, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ 
+            error: `Too many failed login attempts. Temporarily locked for security. Please try again in ${rateCheck.waitSec} seconds.` 
+          }));
+        }
+
         const { email, password } = JSON.parse(body || '{}');
         if (!email || !password) {
+          recordServerFailedLogin(clientIp);
           res.writeHead(400, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ error: 'Email and password are required.' }));
         }
 
         const normalizedEmail = email.trim().toLowerCase();
-        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
-        const clientUa = req.headers['user-agent'] || 'Unknown Browser';
 
         let userRole = 'user';
         let userName = email.split('@')[0];
         let userId = '';
 
-        // Check if Admin login credentials match
+        // Check if Admin login credentials match using bcrypt
         if (normalizedEmail === ADMIN_ID) {
-          if (password !== ADMIN_PASSWORD) {
+          const adminPasswordValid = ADMIN_PASSWORD_HASH
+            ? await bcrypt.compare(password, ADMIN_PASSWORD_HASH)
+            : safeCompare(password, ADMIN_PASSWORD);
+          if (!adminPasswordValid) {
+            recordServerFailedLogin(clientIp);
             res.writeHead(401, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ error: 'Invalid login details. Please try again.' }));
           }
@@ -292,9 +462,18 @@ const server = http.createServer(async (req, res) => {
           userName = 'Administrator';
           userId = 'usr_admin';
         } else {
-          // Regular user authentication
+          // Regular user authentication with bcrypt
           let user = USERS.find(u => u.email.toLowerCase() === normalizedEmail);
-          if (!user || user.password !== password) {
+          if (!user) {
+            recordServerFailedLogin(clientIp);
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Invalid login details. Please try again.' }));
+          }
+          const userPasswordValid = user.passwordHash
+            ? await bcrypt.compare(password, user.passwordHash)
+            : safeCompare(password, user.password || '');
+          if (!userPasswordValid) {
+            recordServerFailedLogin(clientIp);
             res.writeHead(401, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ error: 'Invalid login details. Please try again.' }));
           }
@@ -302,6 +481,9 @@ const server = http.createServer(async (req, res) => {
           userName = user.name || user.email.split('@')[0];
           userId = user.id;
         }
+
+        // Authentication succeeded: clear rate limiter for IP
+        clearServerRateLimit(clientIp);
 
         const token = generateToken();
         const sessionData = {
@@ -351,18 +533,32 @@ const server = http.createServer(async (req, res) => {
   // 1b. Create User Account: POST /api/register
   if ((pathname === '/api/register' || pathname === '/api/signup') && req.method === 'POST') {
     let body = '';
-    req.on('data', chunk => { body += chunk; });
+    req.on('data', chunk => { body += chunk; if (body.length > MAX_BODY_SIZE) { req.destroy(); } });
     req.on('end', async () => {
       try {
+        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+        const clientUa = req.headers['user-agent'] || 'Unknown Browser';
+
+        // Rate limit registration (H2)
+        const regRateCheck = checkRateLimit(clientIp, 'register', RATE_LIMIT_MAX_REGISTER);
+        if (!regRateCheck.allowed) {
+          res.writeHead(429, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ error: `Too many registration attempts. Please try again in ${regRateCheck.retryAfterSec} seconds.` }));
+        }
+
         const { name, email, password } = JSON.parse(body || '{}');
         if (!name || !email || !password) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ error: 'Full Name, Email ID, and Password are all required.' }));
         }
 
+        // Password strength validation
+        if (password.length < 8) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ error: 'Password must be at least 8 characters long.' }));
+        }
+
         const normalizedEmail = email.trim().toLowerCase();
-        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
-        const clientUa = req.headers['user-agent'] || 'Unknown Browser';
 
         // Disallow registering with the Admin email address
         if (normalizedEmail === ADMIN_ID || USERS.some(u => u.email.toLowerCase() === normalizedEmail)) {
@@ -370,11 +566,14 @@ const server = http.createServer(async (req, res) => {
           return res.end(JSON.stringify({ error: 'An account with this email ID already exists. Please sign in.' }));
         }
 
+        // Hash password with bcrypt before storing (C2)
+        const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+
         const newUser = {
           id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
           name: name.trim(),
           email: normalizedEmail,
-          password: password,
+          passwordHash: passwordHash,
           role: 'user',
           createdAt: Date.now()
         };
@@ -552,7 +751,7 @@ const server = http.createServer(async (req, res) => {
         <head><title>Authentication Failed</title><style>body{background:#0b0f19;color:#fff;font-family:sans-serif;text-align:center;padding:50px;}</style></head>
         <body>
           <h2 style="color:#ef4444;">❌ Google / YouTube Authorization Error</h2>
-          <p>${oauthError}</p>
+          <p>${escapeHtml(oauthError)}</p>
           <a href="http://localhost:8080/" style="display:inline-block;margin-top:16px;background:#6366f1;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:700;">Return to Studio</a>
         </body>
         </html>
@@ -612,14 +811,14 @@ const server = http.createServer(async (req, res) => {
             <h2>YouTube Channel Connected!</h2>
             <div class="badge">Auto-Upload Ready</div>
             <p>Your YouTube channel has been authorized for automated YouTube Shorts uploads. Tokens saved securely to session.</p>
-            <a href="http://localhost:8080/" class="btn" onclick="if(window.opener){try{window.opener.postMessage({type:'YOUTUBE_CONNECTED'},'*');}catch(e){} window.close(); return false;}">
+            <a href="http://localhost:8080/" class="btn" onclick="if(window.opener){try{window.opener.postMessage({type:'YOUTUBE_CONNECTED'}, window.location.origin);}catch(e){} window.close(); return false;}">
               Return to AutoClip Studio
             </a>
           </div>
           <script>
             try {
               if (window.opener) {
-                window.opener.postMessage({ type: 'YOUTUBE_CONNECTED' }, '*');
+                window.opener.postMessage({ type: 'YOUTUBE_CONNECTED' }, window.location.origin);
                 setTimeout(() => window.close(), 1500);
               } else {
                 setTimeout(() => { window.location.href = 'http://localhost:8080/'; }, 1000);
@@ -640,7 +839,7 @@ const server = http.createServer(async (req, res) => {
         <head><title>Authentication Failed</title><style>body{background:#0b0f19;color:#fff;font-family:sans-serif;text-align:center;padding:50px;}</style></head>
         <body>
           <h2 style="color:#ef4444;">❌ Authentication Failed</h2>
-          <p>${callbackErr.message || 'Error authenticating with Google'}</p>
+          <p>${escapeHtml(callbackErr.message || 'Error authenticating with Google')}</p>
           <a href="http://localhost:8080/" style="display:inline-block;margin-top:16px;background:#6366f1;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:700;">Return to Studio</a>
         </body>
         </html>
@@ -1373,6 +1572,14 @@ const server = http.createServer(async (req, res) => {
       return res.end(JSON.stringify({ error: 'Job not found' }));
     }
 
+    // Strict Path Traversal Defense: Ensure target is inside TEMP_DIR
+    const resolvedPath = path.resolve(job.file);
+    const resolvedTemp = path.resolve(TEMP_DIR);
+    if (!resolvedPath.startsWith(resolvedTemp)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: 'Access denied: Path traversal violation detected' }));
+    }
+
     if (job.status !== 'COMPLETED' || !job.file || !fs.existsSync(job.file)) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ error: 'Rendering not finished or file missing', status: job.status }));
@@ -1440,18 +1647,38 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 6. Serve Static Files (with dist/ support for Vite React assets)
+  // 6. Serve Static Files — RESTRICTED to dist/ directory only (Security: C4/C5)
+  // Block access to sensitive project root files (.env, tokens, config, server source)
+  const BLOCKED_PATTERNS = /\.(env|json|js|sh|ps1|yaml|toml|md|lock)$/i;
+  const BLOCKED_EXACT = new Set([
+    'server.js', 'package.json', 'package-lock.json', '.env', '.env.example',
+    'oauth_config.json', 'youtube_tokens.json', 'youtube_quota_tracker.json',
+    'render.yaml', 'netlify.toml', 'vercel.json', 'vite.config.mjs',
+    'Dockerfile', 'push.sh', 'push.ps1', '.gitignore'
+  ]);
+
   let reqPath = parsedUrl.pathname === '/' ? 'index.html' : parsedUrl.pathname.replace(/^\//, '');
-  let filePath = path.join(DIR, reqPath);
+
+  // Block requests for known sensitive files
+  const baseName = path.basename(reqPath);
+  if (BLOCKED_EXACT.has(baseName) || reqPath.startsWith('services/') || reqPath.startsWith('src/') || reqPath.startsWith('temp_clips/') || reqPath.startsWith('bin/') || reqPath.startsWith('node_modules/')) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    return res.end('Forbidden');
+  }
+
+  // Only serve from dist/ directory (path traversal protection)
+  const STATIC_ROOT = path.join(DIR, 'dist');
+  const filePath = path.resolve(STATIC_ROOT, reqPath);
+
+  // Prevent path traversal — resolved path must stay within STATIC_ROOT
+  if (!filePath.startsWith(STATIC_ROOT)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    return res.end('Forbidden');
+  }
 
   if (!fs.existsSync(filePath)) {
-    const distPath = path.join(DIR, 'dist', reqPath);
-    if (fs.existsSync(distPath)) {
-      filePath = distPath;
-    } else {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      return res.end('Not Found');
-    }
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    return res.end('Not Found');
   }
 
   const ext = path.extname(filePath).toLowerCase();
@@ -1463,6 +1690,10 @@ const server = http.createServer(async (req, res) => {
   else if (ext === '.webm') contentType = 'video/webm';
   else if (ext === '.png') contentType = 'image/png';
   else if (ext === '.jpg') contentType = 'image/jpeg';
+  else if (ext === '.svg') contentType = 'image/svg+xml';
+  else if (ext === '.ico') contentType = 'image/x-icon';
+  else if (ext === '.woff2') contentType = 'font/woff2';
+  else if (ext === '.woff') contentType = 'font/woff';
 
   res.writeHead(200, { 'Content-Type': contentType });
   fs.createReadStream(filePath).pipe(res);

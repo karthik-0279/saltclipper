@@ -15,7 +15,7 @@ async function generateScriptWithGemini(summaryText, options = {}) {
   }
 
   const model = options.model || 'gemini-2.5-flash';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
   const prompt = options.customPrompt || `
 You are an expert short-form video scriptwriter (YouTube Shorts / Reels / TikTok).
@@ -33,7 +33,7 @@ Format the output strictly as:
 
   const response = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify({
       contents: [{
         parts: [{ text: prompt }]

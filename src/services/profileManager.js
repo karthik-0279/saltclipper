@@ -142,6 +142,16 @@ export function setActiveProfile(profileId) {
   return updated;
 }
 
+function sanitize(str) {
+  if (typeof str !== 'string') return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
+
 /**
  * Dynamically add a new YouTube profile (Unlimited accounts supported)
  */
@@ -154,21 +164,20 @@ export function addNewProfile({
   clientSecret = ''
 }) {
   const profiles = getYoutubeProfiles();
-  const cleanHandle = (handle || '').trim().startsWith('@') 
-    ? (handle || '').trim() 
-    : `@${(handle || '').trim() || 'NewCreator'}`;
+  const rawHandle = (handle || '').trim();
+  const cleanHandle = sanitize(rawHandle.startsWith('@') ? rawHandle : `@${rawHandle || 'NewCreator'}`);
 
   const newProfile = {
     id: `yt_prof_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-    name: name?.trim() || `YouTube Channel #${profiles.length + 1}`,
+    name: sanitize(name?.trim() || `YouTube Channel #${profiles.length + 1}`),
     handle: cleanHandle,
-    email: email?.trim() || `creator_${profiles.length + 1}@youtube.com`,
-    dailyLimit: Number(dailyLimit) || 85,
+    email: sanitize(email?.trim() || `creator_${profiles.length + 1}@youtube.com`),
+    dailyLimit: Math.min(500, Math.max(1, Number(dailyLimit) || 85)),
     usedToday: 0,
     status: profiles.length === 0 ? 'ACTIVE' : 'STANDBY',
     subscriberCount: '1K',
-    clientId: clientId?.trim() || `oauth-client-${Date.now()}`,
-    clientSecret: clientSecret?.trim() || '',
+    clientId: sanitize(clientId?.trim() || `mock-oauth-client-${Date.now()}`),
+    clientSecret: sanitize(clientSecret?.trim() || ''),
     createdAt: new Date().toISOString()
   };
 

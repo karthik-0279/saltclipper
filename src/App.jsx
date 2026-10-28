@@ -18,13 +18,20 @@ import {
   pollJobStatus,
   uploadAllClipsToYouTube,
   pollBatchStatus,
-  fetchYouTubeQuota
+  fetchYouTubeQuota,
+  sanitizeUrl,
+  STORAGE_KEYS
 } from './services/api';
 
 export default function App() {
   // --- User & Authentication State ---
   const [currentUser, setCurrentUser] = useState(null);
-  const [token, setToken] = useState(() => localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || null);
+  const [token, setToken] = useState(() => 
+    localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || 
+    localStorage.getItem('auth_token') || 
+    sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || 
+    null
+  );
   const [currentView, setCurrentView] = useState('studio'); // 'studio' | 'admin'
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
 
@@ -84,11 +91,13 @@ export default function App() {
         } else {
           setToken(null);
           setCurrentUser(null);
+          localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
           localStorage.removeItem('auth_token');
         }
       } catch (err) {
         setToken(null);
         setCurrentUser(null);
+        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
         localStorage.removeItem('auth_token');
       }
     }
@@ -147,7 +156,9 @@ export default function App() {
 
   const handleLogout = useCallback(async () => {
     try {
+      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
       localStorage.removeItem('auth_token');
+      sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
       sessionStorage.removeItem('auth_token');
       if (token) await logoutUser(token);
     } catch (e) {
@@ -160,12 +171,17 @@ export default function App() {
     }
   }, [token, showToast]);
 
-  // 4. Video Analysis & Clip Generation
-  const handleAnalyzeUrl = (url) => {
-    setVideoUrl(url);
+  // 4. Video Analysis & Clip Generation (with strict safe URL sanitization)
+  const handleAnalyzeUrl = (rawUrl) => {
+    const cleanUrl = sanitizeUrl(rawUrl);
+    if (!cleanUrl) {
+      showToast('⚠️ Invalid or unsafe URL. Only standard http:// and https:// URLs are allowed.');
+      return;
+    }
+    setVideoUrl(cleanUrl);
     setIsAnalyzing(true);
 
-    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
+    const match = cleanUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
     if (match) {
       setYoutubeId(match[1]);
       setVideoType('youtube');

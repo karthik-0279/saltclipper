@@ -1,36 +1,10 @@
 import React, { useState } from 'react';
-import { loginUser } from '../services/api';
+import { loginUser, recordLoginEvent, STORAGE_KEYS, sanitizeText } from '../services/api';
 
 /**
  * Storage key for persistent audit log of login events
  */
-export const LOGIN_HISTORY_STORAGE_KEY = 'autoclip_login_history';
-
-/**
- * Helper to record login history in localStorage
- */
-export function recordLoginEvent({ email, role = 'admin', status = 'SUCCESS', reason = '' }) {
-  try {
-    const history = JSON.parse(localStorage.getItem(LOGIN_HISTORY_STORAGE_KEY) || '[]');
-    const newRecord = {
-      id: `login_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      timestamp: new Date().toISOString(),
-      readableTime: new Date().toLocaleString(),
-      email: email || 'Unknown',
-      role,
-      status, // 'SUCCESS' | 'FAILED'
-      reason,
-      device: `${navigator.platform || 'Desktop'} - ${navigator.userAgent.split(' ')[0]} (Browser)`,
-      ip: '127.0.0.1'
-    };
-    const updated = [newRecord, ...history].slice(0, 50); // Keep latest 50 entries
-    localStorage.setItem(LOGIN_HISTORY_STORAGE_KEY, JSON.stringify(updated));
-    return updated;
-  } catch (e) {
-    console.warn('Failed to record login event:', e);
-    return [];
-  }
-}
+export const LOGIN_HISTORY_STORAGE_KEY = STORAGE_KEYS.LOGIN_HISTORY;
 
 /**
  * AdminLoginModal Component
@@ -80,6 +54,7 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
 
       // Save token in localStorage
       if (data.token) {
+        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, data.token);
         localStorage.setItem('auth_token', data.token);
       }
 
