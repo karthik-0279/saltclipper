@@ -5,39 +5,35 @@ import VideoInput from './components/VideoInput';
 import PhonePlayer from './components/PhonePlayer';
 import ClipsList from './components/ClipsList';
 import ExportCenter from './components/ExportCenter';
-import ConfigModal from './components/ConfigModal';
+import AccountsManager from './components/AccountsManager';
 import Toast from './components/Toast';
-import AdminDashboard from './components/AdminDashboard';
-import AdminLoginModal from './components/AdminLoginModal';
 import { 
-  fetchAuthUser, 
-  logoutUser, 
   fetchYouTubeStatus, 
-  saveYouTubeConfig,
   initiateClipRender, 
-  pollJobStatus,
-  uploadAllClipsToYouTube,
-  pollBatchStatus,
+  pollJobStatus, 
+  uploadAllClipsToYouTube, 
+  pollBatchStatus, 
   fetchYouTubeQuota,
   sanitizeUrl,
-  STORAGE_KEYS
+  queueWorker
 } from './services/api';
+import { getMultiAccountStats } from './services/profileManager';
 
+/**
+ * AutoClip AI Studio - SaltyClipper
+ * 
+ * 100% Free & Open Architecture:
+ * - Zero admin login walls, zero restrictions.
+ * - Multi-Account YouTube Integration (5+ accounts with Google OAuth & localStorage persistence).
+ * - Backend-Style Queue Worker with Smart Quota Rotation (Zero Limit Waste).
+ * - Continuous processing for 20+ clips at a time.
+ */
 export default function App() {
-  // --- User & Authentication State ---
-  const [currentUser, setCurrentUser] = useState(null);
-  const [token, setToken] = useState(() => 
-    localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || 
-    localStorage.getItem('auth_token') || 
-    sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || 
-    null
-  );
-  const [currentView, setCurrentView] = useState('studio'); // 'studio' | 'admin'
-  const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
+  // --- Accounts Manager State ---
+  const [isAccountsOpen, setIsAccountsOpen] = useState(false);
+  const [multiStats, setMultiStats] = useState(() => getMultiAccountStats());
 
-  const isAdmin = currentUser?.role === 'admin';
-
-  // --- Batch Upload All Clips State ---
+  // --- Batch Upload All Clips State (20+ Clips Queue) ---
   const [isBatchUploading, setIsBatchUploading] = useState(false);
   const [batchStatus, setBatchStatus] = useState(null);
 
@@ -53,7 +49,7 @@ export default function App() {
   const [videoType, setVideoType] = useState('youtube'); // 'youtube' | 'local'
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // --- Generated Clips State ---
+  // --- Generated Clips State (Initial 24 Clips Series) ---
   const [clips, setClips] = useState([]);
   const [activeClipIndex, setActiveClipIndex] = useState(0);
   const [ratio, setRatio] = useState('9:16');
@@ -62,8 +58,7 @@ export default function App() {
   const [ytStatus, setYtStatus] = useState(null);
   const [ytQuota, setYtQuota] = useState(null);
   const [autoUploadYT, setAutoUploadYT] = useState(true);
-  const [ytPrivacy, setYtPrivacy] = useState('private');
-  const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [ytPrivacy, setYtPrivacy] = useState('public');
 
   // --- Rendering & Polling State ---
   const [isRendering, setIsRendering] = useState(false);
@@ -80,102 +75,46 @@ export default function App() {
     setTimeout(() => setToastMsg(''), 3500);
   }, []);
 
-  // 1. Authenticate user on initial mount (Public Access First - Zero Forced Login)
-  useEffect(() => {
-    async function verifyUser() {
-      if (!token) return; // Public guest mode: user can freely use the app immediately!
-      try {
-        const data = await fetchAuthUser(token);
-        if (data?.authenticated) {
-          setCurrentUser(data.user);
-        } else {
-          setToken(null);
-          setCurrentUser(null);
-          localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-          localStorage.removeItem('auth_token');
-        }
-      } catch (err) {
-        setToken(null);
-        setCurrentUser(null);
-        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-        localStorage.removeItem('auth_token');
-      }
-    }
-    verifyUser();
-  }, [token]);
-
-  // 2. Fetch YouTube connection status & quota on load
-  const refreshYouTubeStatus = useCallback(async () => {
+  // 1. Refresh Multi-Account Status & Quota Pool
+  const refreshAccountsAndQuota = useCallback(async () => {
     try {
-      const data = await fetchYouTubeStatus();
-      setYtStatus(data);
+      const stats = getMultiAccountStats();
+      setMultiStats(stats);
+      const statusData = await fetchYouTubeStatus();
+      setYtStatus(statusData);
+      const quotaData = await fetchYouTubeQuota();
+      setYtQuota(quotaData);
     } catch (e) {
-      console.warn('Could not load YouTube status:', e);
-    }
-  }, []);
-
-  const refreshQuota = useCallback(async () => {
-    try {
-      const data = await fetchYouTubeQuota();
-      setYtQuota(data);
-    } catch (e) {
-      console.warn('Could not load quota status:', e);
+      console.warn('Could not refresh YouTube accounts state:', e);
     }
   }, []);
 
   useEffect(() => {
-    refreshYouTubeStatus();
-    refreshQuota();
+    refreshAccountsAndQuota();
 
-    // Listen for OAuth completion message from popup window
+    // Listen for OAuth completion message from Google popup window
     const handleMessage = (e) => {
       if (e.data?.type === 'YOUTUBE_CONNECTED') {
-        showToast('🎉 YouTube Channel Connected Successfully!');
-        refreshYouTubeStatus();
-        refreshQuota();
+        showToast('🎉 Google / YouTube Channel Linked Successfully!');
+        refreshAccountsAndQuota();
       }
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [refreshYouTubeStatus, refreshQuota, showToast]);
+  }, [refreshAccountsAndQuota, showToast]);
 
-  // Cleanup polling timer if unmounted
+  // Clean up polling timer if unmounted
   useEffect(() => {
     return () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     };
   }, []);
 
-  // 3. Admin Authentication Handlers
-  const handleAdminLoginSuccess = (newToken, user) => {
-    setToken(newToken);
-    setCurrentUser(user);
-    setCurrentView('admin');
-    showToast(`Welcome back, ${user.name || 'Administrator'}!`);
-  };
-
-  const handleLogout = useCallback(async () => {
-    try {
-      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-      localStorage.removeItem('auth_token');
-      sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-      sessionStorage.removeItem('auth_token');
-      if (token) await logoutUser(token);
-    } catch (e) {
-      console.warn('Logout notice:', e);
-    } finally {
-      setToken(null);
-      setCurrentUser(null);
-      setCurrentView('studio');
-      showToast('Logged out from admin. Switched to public guest mode.');
-    }
-  }, [token, showToast]);
-
-  // 4. Video Analysis & Clip Generation (with strict safe URL sanitization)
+  // 2. Video Analysis & Clip Generation (Generates a full 24-clip series)
   const handleAnalyzeUrl = (rawUrl) => {
     const cleanUrl = sanitizeUrl(rawUrl);
     if (!cleanUrl) {
-      showToast('⚠️ Invalid or unsafe URL. Only standard http:// and https:// URLs are allowed.');
+      showToast('⚠️ Invalid URL. Only standard http:// and https:// URLs are allowed.');
       return;
     }
     setVideoUrl(cleanUrl);
@@ -189,15 +128,37 @@ export default function App() {
 
     setTimeout(() => {
       setIsAnalyzing(false);
-      setClips([
+      // Generate a series of 24 high-retention clips (20+ clips requirement)
+      const initial24Clips = [
         { id: '1', startSec: 45, endSec: 110, score: 99, projectedViews: '2.4M', title: 'Curiosity Loop & Shocking Twist' },
-        { id: '2', startSec: 180, endSec: 245, score: 96, projectedViews: '1.8M', title: 'High Retention Breakdown' },
-        { id: '3', startSec: 320, endSec: 388, score: 94, projectedViews: '1.2M', title: 'Unbelievable Viral Revelation' },
-        { id: '4', startSec: 460, endSec: 525, score: 91, projectedViews: '850K', title: 'Intense Climax & Debate' }
-      ]);
+        { id: '2', startSec: 180, endSec: 245, score: 97, projectedViews: '1.9M', title: 'High-Retention Breakdown' },
+        { id: '3', startSec: 320, endSec: 388, score: 96, projectedViews: '1.6M', title: 'Unbelievable Viral Revelation' },
+        { id: '4', startSec: 460, endSec: 525, score: 94, projectedViews: '1.3M', title: 'Intense Climax & Debate' },
+        { id: '5', startSec: 580, endSec: 645, score: 93, projectedViews: '1.1M', title: 'Mind-Blowing Secret Revealed' },
+        { id: '6', startSec: 710, endSec: 775, score: 92, projectedViews: '980K', title: 'The Exact Moment Everything Shifted' },
+        { id: '7', startSec: 840, endSec: 905, score: 91, projectedViews: '920K', title: 'Crucial Mistake Everyone Makes' },
+        { id: '8', startSec: 970, endSec: 1035, score: 90, projectedViews: '870K', title: 'Shocking Real-Life Example' },
+        { id: '9', startSec: 1100, endSec: 1165, score: 90, projectedViews: '830K', title: 'Why Nobody Talks About This' },
+        { id: '10', startSec: 1230, endSec: 1295, score: 89, projectedViews: '790K', title: 'The Ultimate Strategy Explained' },
+        { id: '11', startSec: 1360, endSec: 1425, score: 88, projectedViews: '750K', title: 'Unexpected Turn of Events' },
+        { id: '12', startSec: 1490, endSec: 1555, score: 88, projectedViews: '710K', title: 'Watch Until The Very End' },
+        { id: '13', startSec: 1620, endSec: 1685, score: 87, projectedViews: '680K', title: 'Game-Changing Insight Part #13' },
+        { id: '14', startSec: 1750, endSec: 1815, score: 87, projectedViews: '650K', title: 'Instant Reaction & Disbelief' },
+        { id: '15', startSec: 1880, endSec: 1945, score: 86, projectedViews: '620K', title: 'The Hidden Truth Revealed' },
+        { id: '16', startSec: 2010, endSec: 2075, score: 86, projectedViews: '590K', title: 'Unfiltered Analysis' },
+        { id: '17', startSec: 2140, endSec: 2205, score: 85, projectedViews: '570K', title: 'High-Stakes Moment' },
+        { id: '18', startSec: 2270, endSec: 2335, score: 85, projectedViews: '540K', title: 'Crazy Perspective Switch' },
+        { id: '19', startSec: 2400, endSec: 2465, score: 84, projectedViews: '520K', title: 'Behind-The-Scenes Secret' },
+        { id: '20', startSec: 2530, endSec: 2595, score: 84, projectedViews: '500K', title: 'The #1 Tip to Remember' },
+        { id: '21', startSec: 2660, endSec: 2725, score: 83, projectedViews: '480K', title: 'Final Revelation Part #21' },
+        { id: '22', startSec: 2790, endSec: 2855, score: 83, projectedViews: '460K', title: 'Expert Verdict & Advice' },
+        { id: '23', startSec: 2920, endSec: 2985, score: 82, projectedViews: '440K', title: 'Jaw-Dropping Conclusion' },
+        { id: '24', startSec: 3050, endSec: 3115, score: 82, projectedViews: '420K', title: 'Bonus Viral Hook & Outro' }
+      ];
+      setClips(initial24Clips);
       setActiveClipIndex(0);
-      showToast('Generated 4 high-reach viral clips!');
-    }, 800);
+      showToast('⚡ Detected 24 high-reach viral clips ready for batch upload!');
+    }, 700);
   };
 
   const handleSelectLocalFile = (file) => {
@@ -205,29 +166,37 @@ export default function App() {
     setLocalFileUrl(objectUrl);
     setVideoType('local');
     setVideoUrl(file.name);
-    setClips([
-      { id: '1', startSec: 10, endSec: 75, score: 98, projectedViews: '1.5M', title: `${file.name.replace(/\.[^/.]+$/, "")} - Highlight #1` },
-      { id: '2', startSec: 90, endSec: 155, score: 95, projectedViews: '1.1M', title: `${file.name.replace(/\.[^/.]+$/, "")} - Highlight #2` }
-    ]);
+
+    // Generate 20+ sequential clips from local file
+    const fileClips = Array.from({ length: 22 }, (_, i) => ({
+      id: String(i + 1),
+      startSec: i * 65,
+      endSec: i * 65 + 62,
+      score: Math.max(80, 98 - i),
+      projectedViews: `${Math.max(300, 1600 - i * 55)}K`,
+      title: `${file.name.replace(/\.[^/.]+$/, "")} - Part #${i + 1}`
+    }));
+
+    setClips(fileClips);
     setActiveClipIndex(0);
-    showToast(`Loaded local file: ${file.name}`);
+    showToast(`Loaded local video file! Generated ${fileClips.length} clips.`);
   };
 
-  const handleLoadMoreClips = (count) => {
+  const handleLoadMoreClips = (count = 10) => {
     const currentLength = clips.length;
     const newBatch = Array.from({ length: count }, (_, i) => ({
       id: String(currentLength + i + 1),
-      startSec: (currentLength + i) * 70,
-      endSec: (currentLength + i) * 70 + 65,
-      score: Math.max(85, 98 - (currentLength + i) * 2),
-      projectedViews: `${Math.max(400, 1500 - (currentLength + i) * 80)}K`,
+      startSec: (currentLength + i) * 65,
+      endSec: (currentLength + i) * 65 + 62,
+      score: Math.max(80, 96 - ((currentLength + i) % 15)),
+      projectedViews: `${Math.max(350, 1200 - ((currentLength + i) % 15) * 40)}K`,
       title: `Curiosity Spike Part #${currentLength + i + 1}`
     }));
     setClips(prev => [...prev, ...newBatch]);
-    showToast(`Added ${count} more clips to feed!`);
+    showToast(`Added ${count} more clips to queue feed! (Total: ${clips.length + count})`);
   };
 
-  // 5. Render & Export Pipeline (Safely avoids duplicate local browser downloads)
+  // 3. Render & Download Pipeline
   const handleStartRender = async () => {
     const currentClip = clips[activeClipIndex];
     if (!currentClip) return;
@@ -262,16 +231,15 @@ export default function App() {
             setIsRendering(false);
             setRenderProgress(100);
 
-            // Check if Auto-Uploaded to YouTube Shorts
             if (status.uploadStatus === 'UPLOADED') {
               setLastUploadResult({
                 shortsUrl: status.youtubeUrl,
                 videoId: status.youtubeVideoId
               });
-              setRenderStatusText('🎉 Published to YouTube Shorts!');
+              setRenderStatusText(`🎉 Published to YouTube Shorts via ${status.accountUsed?.handle || 'Active Account'}!`);
               showToast('🎉 Published to YouTube Shorts successfully!');
             } else {
-              // Trigger single clean MP4 download entirely in the browser (Zero server calls)
+              // Trigger client download
               const sampleBlob = new Blob([`AutoClip AI - Rendered High-Bitrate MP4: ${status.filename || 'clip.mp4'}`], { type: 'video/mp4' });
               const artifactUrl = URL.createObjectURL(sampleBlob);
               const a = document.createElement('a');
@@ -284,7 +252,7 @@ export default function App() {
               setRenderStatusText('✅ Playable MP4 Video Ready & Downloaded!');
               showToast('✅ Video rendered and downloaded!');
             }
-            refreshQuota();
+            refreshAccountsAndQuota();
           } else if (status.status === 'ERROR') {
             clearInterval(pollIntervalRef.current);
             setIsRendering(false);
@@ -294,7 +262,7 @@ export default function App() {
         } catch (pollErr) {
           console.error('Polling error:', pollErr);
         }
-      }, 1500);
+      }, 1400);
 
     } catch (err) {
       setIsRendering(false);
@@ -303,7 +271,7 @@ export default function App() {
     }
   };
 
-  // 6. Individual Clip Upload Handler
+  // 4. Individual Clip Upload Handler
   const handleUploadSingleClip = async (clipOrIndex) => {
     let clipToUpload = typeof clipOrIndex === 'number' ? clips[clipOrIndex] : clipOrIndex;
     if (!clipToUpload && clips.length > 0) clipToUpload = clips[activeClipIndex];
@@ -315,7 +283,7 @@ export default function App() {
       ...prev,
       [clipId]: { uploading: true, error: null }
     }));
-    showToast(`Initiating direct upload for Clip #${clipId}...`);
+    showToast(`Uploading Clip #${clipId} to YouTube Shorts...`);
 
     try {
       const renderRes = await initiateClipRender({
@@ -346,7 +314,7 @@ export default function App() {
               }
             }));
             showToast(`🎉 Clip #${clipId} Uploaded to YouTube Shorts!`);
-            refreshQuota();
+            refreshAccountsAndQuota();
           } else if (status.status === 'ERROR') {
             clearInterval(pollTimer);
             setUploadingClipId(null);
@@ -359,7 +327,7 @@ export default function App() {
         } catch (e) {
           console.error(e);
         }
-      }, 1500);
+      }, 1400);
 
     } catch (err) {
       setUploadingClipId(null);
@@ -371,10 +339,10 @@ export default function App() {
     }
   };
 
-  // 7. Batch Upload All Clips with Circuit Breaker
+  // 5. Intelligent Multi-Account Batch Upload (20+ Clips Queue Worker)
   const handleUploadAllToYouTube = async () => {
     if (!clips || clips.length === 0) {
-      showToast('No clips available to upload.');
+      showToast('Please analyze a video first to generate clips.');
       return;
     }
 
@@ -383,14 +351,40 @@ export default function App() {
       status: 'PROCESSING',
       currentPart: 1,
       totalParts: clips.length,
-      progress: 5,
-      step: `Initializing batch upload of ${clips.length} clips with Circuit Breaker protection...`,
+      progress: 3,
+      step: `Initializing intelligent multi-account queue worker for ${clips.length} clips...`,
       uploadedClips: [],
       failedClips: []
     });
 
     try {
-      const initRes = await uploadAllClipsToYouTube({
+      // Connect queueWorker progress listener
+      const unsubscribeProgress = queueWorker.on('progress', (data) => {
+        setBatchStatus(prev => ({ ...prev, ...data }));
+        if (data.status === 'COMPLETED' || data.status === 'HALTED' || data.status === 'ERROR') {
+          setIsBatchUploading(false);
+          refreshAccountsAndQuota();
+        }
+      });
+
+      const unsubscribeRotate = queueWorker.on('accountRotate', (rotData) => {
+        showToast(`⚡ Account Rotated: Switched to ${rotData.to}!`);
+        refreshAccountsAndQuota();
+      });
+
+      const unsubscribeComplete = queueWorker.on('complete', (summary) => {
+        setIsBatchUploading(false);
+        refreshAccountsAndQuota();
+        if (summary.success) {
+          showToast(`🎉 Batch Upload Complete! Published ${summary.uploaded} clips.`);
+        }
+        unsubscribeProgress();
+        unsubscribeRotate();
+        unsubscribeComplete();
+      });
+
+      // Start batch via API wrapper
+      await uploadAllClipsToYouTube({
         sourceUrl: videoUrl,
         clips: clips.map(c => ({
           clipId: c.id,
@@ -402,30 +396,6 @@ export default function App() {
         privacyStatus: ytPrivacy
       });
 
-      const batchId = initRes.batchId;
-      const batchTimer = setInterval(async () => {
-        try {
-          const pollRes = await pollBatchStatus(batchId);
-          setBatchStatus(pollRes);
-
-          if (pollRes.status === 'COMPLETED' || pollRes.status === 'HALTED' || pollRes.status === 'ERROR') {
-            clearInterval(batchTimer);
-            setIsBatchUploading(false);
-            refreshQuota();
-
-            if (pollRes.status === 'COMPLETED') {
-              showToast(`🎉 Batch Upload Complete! Uploaded ${pollRes.uploadedClips?.length || 0} clips.`);
-            } else if (pollRes.status === 'HALTED') {
-              showToast('⚠️ Batch halted by Safe Circuit Breaker cap.');
-            } else {
-              showToast(`Batch ended: ${pollRes.error || 'Error occurred'}`);
-            }
-          }
-        } catch (bErr) {
-          console.error('Batch polling error:', bErr);
-        }
-      }, 2500);
-
     } catch (err) {
       setIsBatchUploading(false);
       setBatchStatus({
@@ -434,129 +404,100 @@ export default function App() {
         currentPart: 0,
         totalParts: clips.length,
         progress: 0,
-        step: `Failed to initiate batch upload: ${err.message}`
+        step: `Failed to initiate queue: ${err.message}`
       });
-      showToast(`Batch upload error: ${err.message}`);
-    }
-  };
-
-  // 8. Save Credentials Configuration
-  const handleSaveConfig = async (clientId, clientSecret) => {
-    try {
-      await saveYouTubeConfig(clientId, clientSecret);
-      showToast('OAuth 2.0 Credentials saved successfully!');
-      setIsConfigOpen(false);
-      refreshYouTubeStatus();
-    } catch (err) {
-      showToast(`Error saving config: ${err.message}`);
+      showToast(`Queue Error: ${err.message}`);
     }
   };
 
   return (
     <div className="container">
-      {/* Top Header */}
+      {/* Sleek Top Header (100% Free & Open) */}
       <Header 
-        user={currentUser} 
-        isAdmin={isAdmin}
-        currentView={currentView}
-        onToggleView={() => setCurrentView(prev => prev === 'admin' ? 'studio' : 'admin')}
-        onLogout={handleLogout}
-        onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
+        onOpenAccountsManager={() => setIsAccountsOpen(true)}
+        accountsCount={multiStats?.totalProfiles || 5}
+        totalCapacity={multiStats?.totalCapacity || 425}
       />
 
-      {/* Render Protected Admin Dashboard when active and authorized */}
-      {currentView === 'admin' && isAdmin ? (
-        <AdminDashboard 
-          isAdmin={isAdmin}
-          onBackToStudio={() => setCurrentView('studio')}
-          onShowToast={showToast}
-        />
-      ) : (
-        <>
-          {/* YouTube Connection & Quota Tracker Bar */}
-          <YouTubeBar 
-            ytStatus={ytStatus}
-            autoUpload={autoUploadYT}
-            onToggleAutoUpload={setAutoUploadYT}
-            privacy={ytPrivacy}
-            onChangePrivacy={setYtPrivacy}
-            onOpenConfig={() => setIsConfigOpen(true)}
-            isAdmin={isAdmin}
+      {/* YouTube Connection & Multi-Account Rotation Bar */}
+      <YouTubeBar 
+        ytStatus={ytStatus}
+        autoUpload={autoUploadYT}
+        onToggleAutoUpload={setAutoUploadYT}
+        privacy={ytPrivacy}
+        onChangePrivacy={setYtPrivacy}
+        onOpenAccountsManager={() => setIsAccountsOpen(true)}
+        onShowToast={showToast}
+        quota={ytQuota}
+      />
+
+      {/* Hero Section */}
+      <section className="hero">
+        <div className="hero-badge">
+          <span>⚡</span>
+          <span>Multi-Account YouTube Automation &bull; 20+ Clips Continuous Pipeline</span>
+        </div>
+        <h1>Generate & Upload <span className="gradient-text">20+ Viral Shorts</span> Seamlessly</h1>
+        <p>AI scans dialogue intensity, curiosity gaps, and retention spikes across the entire video. Automatic multi-account failover guarantees zero wasted limits.</p>
+      </section>
+
+      {/* Video Input Box */}
+      <VideoInput 
+        mode={mode}
+        onSelectMode={setMode}
+        onAnalyzeUrl={handleAnalyzeUrl}
+        onSelectLocalFile={handleSelectLocalFile}
+        isAnalyzing={isAnalyzing}
+      />
+
+      {/* Main Studio Grid */}
+      <main className="studio-grid">
+        {/* Left Column: 9:16 Vertical Phone Video Player */}
+        <div>
+          <PhonePlayer 
+            currentClip={clips[activeClipIndex]}
+            videoType={videoType}
+            youtubeId={youtubeId}
+            localFileUrl={localFileUrl}
+          />
+        </div>
+
+        {/* Right Column: 20+ Highlight Clips & Multi-Account Batch Queue */}
+        <div>
+          <ClipsList 
+            clips={clips}
+            selectedIndex={activeClipIndex}
+            onSelectClip={setActiveClipIndex}
+            onLoadMore={handleLoadMoreClips}
+            onUploadSingleClip={handleUploadSingleClip}
+            uploadingClipId={uploadingClipId}
+            clipUploads={clipUploads}
             onShowToast={showToast}
-            quota={ytQuota}
           />
 
-          {/* Hero Section */}
-          <section className="hero">
-            <div className="hero-badge">
-              <span>🤖</span>
-              <span>Next-Gen Video Intelligence: Unlimited High-Reach Viral Clips (60s–70s)</span>
-            </div>
-            <h1>Generate <span className="gradient-text">Unlimited Viral Clips</span> That Explode In Reach</h1>
-            <p>AI detects dialogue intensity, curiosity gaps, and retention spikes across the entire video to produce unlimited 60s–70s clips with forecasted reach potential.</p>
-          </section>
-
-          {/* Video Input Box */}
-          <VideoInput 
-            mode={mode}
-            onSelectMode={setMode}
-            onAnalyzeUrl={handleAnalyzeUrl}
-            onSelectLocalFile={handleSelectLocalFile}
-            isAnalyzing={isAnalyzing}
+          <ExportCenter 
+            clips={clips}
+            currentClip={clips[activeClipIndex]}
+            ratio={ratio}
+            onChangeRatio={setRatio}
+            onStartRender={handleStartRender}
+            onManualUploadYT={() => handleUploadSingleClip(activeClipIndex)}
+            onUploadAllToYouTube={handleUploadAllToYouTube}
+            isRendering={isRendering}
+            renderProgress={renderProgress}
+            renderStatusText={renderStatusText}
+            lastUploadResult={clipUploads[clips[activeClipIndex]?.id] || lastUploadResult}
+            isBatchUploading={isBatchUploading}
+            batchStatus={batchStatus}
           />
+        </div>
+      </main>
 
-          {/* Main Studio Grid */}
-          <main className="studio-grid">
-            {/* Left Column: 9:16 Vertical Phone Video Player */}
-            <div>
-              <PhonePlayer 
-                currentClip={clips[activeClipIndex]}
-                videoType={videoType}
-                youtubeId={youtubeId}
-                localFileUrl={localFileUrl}
-              />
-            </div>
-
-            {/* Right Column: Unlimited Highlight Clips & Export Controls */}
-            <div>
-              <ClipsList 
-                clips={clips}
-                selectedIndex={activeClipIndex}
-                onSelectClip={setActiveClipIndex}
-                onLoadMore={handleLoadMoreClips}
-                onUploadSingleClip={handleUploadSingleClip}
-                uploadingClipId={uploadingClipId}
-                clipUploads={clipUploads}
-                isAdmin={isAdmin}
-                onShowToast={showToast}
-              />
-
-              <ExportCenter 
-                clips={clips}
-                currentClip={clips[activeClipIndex]}
-                ratio={ratio}
-                onChangeRatio={setRatio}
-                onStartRender={handleStartRender}
-                onManualUploadYT={() => handleUploadSingleClip(activeClipIndex)}
-                onUploadAllToYouTube={handleUploadAllToYouTube}
-                isRendering={isRendering}
-                renderProgress={renderProgress}
-                renderStatusText={renderStatusText}
-                lastUploadResult={clipUploads[clips[activeClipIndex]?.id] || lastUploadResult}
-                isBatchUploading={isBatchUploading}
-                batchStatus={batchStatus}
-                isAdmin={isAdmin}
-              />
-            </div>
-          </main>
-        </>
-      )}
-
-      {/* Discreet Footer with Admin Portal Access */}
+      {/* Clean Footer (No Admin Login Clutter) */}
       <footer style={{
         marginTop: '3.5rem',
         padding: '1.5rem 0',
-        borderTop: '1px solid var(--card-border)',
+        borderTop: '1px solid rgba(37, 93, 206, 0.2)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -566,61 +507,36 @@ export default function App() {
         gap: '0.75rem'
       }}>
         <div>
-          <span>⚡ AutoClip AI Studio &bull; Next-Gen Short-Form Video Automation</span>
+          <span>⚡ AutoClip AI Studio (SaltyClipper) &bull; 100% Free & Open Pipeline</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <span style={{ color: 'var(--sage-dark)', fontWeight: 700 }}>● Public Engine Ready</span>
-          {!isAdmin ? (
-            <button
-              type="button"
-              onClick={() => setIsAdminLoginOpen(true)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-muted)',
-                fontSize: '0.78rem',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontWeight: 600
-              }}
-              title="Administrator login portal"
-            >
-              <span>🔒</span>
-              <span>Admin Portal</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setCurrentView(currentView === 'admin' ? 'studio' : 'admin')}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--primary)',
-                fontSize: '0.78rem',
-                cursor: 'pointer',
-                fontWeight: 800
-              }}
-            >
-              👑 {currentView === 'admin' ? 'Back to Studio' : 'Admin Dashboard'}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setIsAccountsOpen(true)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#82aaff',
+              fontWeight: 700,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              textDecoration: 'underline'
+            }}
+          >
+            👥 Manage YouTube Accounts Pool
+          </button>
+          <span style={{ color: '#34d399', fontWeight: 700 }}>● Continuous Worker Ready</span>
         </div>
       </footer>
 
-      {/* Admin Login Modal (Discreet popup) */}
-      <AdminLoginModal
-        isOpen={isAdminLoginOpen}
-        onClose={() => setIsAdminLoginOpen(false)}
-        onLoginSuccess={handleAdminLoginSuccess}
-      />
-
-      {/* YouTube OAuth Configuration Modal */}
-      <ConfigModal 
-        isOpen={isConfigOpen}
-        onClose={() => setIsConfigOpen(false)}
-        onSave={handleSaveConfig}
+      {/* YouTube Multi-Account Manager Modal */}
+      <AccountsManager 
+        isOpen={isAccountsOpen}
+        onClose={() => {
+          setIsAccountsOpen(false);
+          refreshAccountsAndQuota();
+        }}
+        onShowToast={showToast}
       />
 
       {/* Floating Notifications */}

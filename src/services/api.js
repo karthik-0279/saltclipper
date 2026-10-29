@@ -29,9 +29,11 @@ import {
   PROFILES_STORAGE_KEY,
   ROTATION_LOGS_STORAGE_KEY
 } from './profileManager';
+import { queueWorker } from './uploadQueueWorker';
 
-// Re-export profile management helpers
+// Re-export profile management helpers and queue worker
 export {
+  queueWorker,
   getYoutubeProfiles,
   getActiveProfile,
   setActiveProfile,
@@ -407,80 +409,8 @@ export async function resetYouTubeQuota(dailyLimit = 85) {
 }
 
 // ==========================================
-// 6. Client-Side Admin Overview (RBAC Protected)
+// 6. Multi-Account Management Exports
 // ==========================================
-
-export async function fetchAdminOverview() {
-  const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-  const multiAccount = getMultiAccountStats();
-  const rotationLogs = getRotationLogs();
-
-  try {
-    const res = await fetch('/api/admin/overview', {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-      cache: 'no-store'
-    });
-    if (res.ok) {
-      const serverData = await res.json();
-      return {
-        ...serverData,
-        multiAccountStats: multiAccount,
-        rotationLogs
-      };
-    }
-  } catch (e) {
-    // Fallback when running without server
-  }
-
-  const history = getLocalLoginHistory();
-  const quota = getLocalQuota();
-
-  return {
-    success: true,
-    activeSessionsCount: 1,
-    smtpConfigured: true,
-    adminAlertEmail: 'Configured in server .env',
-    recentLogins: history,
-    youtubeQuota: quota,
-    multiAccountStats: multiAccount,
-    rotationLogs,
-    sessions: [
-      {
-        name: 'Administrator',
-        email: 'admin@system.local',
-        role: 'admin',
-        createdAt: Date.now() - 3600000
-      }
-    ]
-  };
-}
-
-export async function sendTestAdminAlert() {
-  const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-  try {
-    const res = await fetch('/api/admin/send-test-alert', {
-      method: 'POST',
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-    });
-    if (res.ok) {
-      const data = await res.json();
-      return data;
-    }
-  } catch (e) {
-    // Offline / fallback
-  }
-
-  recordLoginEvent({
-    email: 'admin@system.local',
-    role: 'admin',
-    status: 'SUCCESS',
-    reason: 'Security Alert Dispatch Test'
-  });
-  return {
-    success: true,
-    message: 'Test security alert successfully recorded in client audit trail!'
-  };
-}
 
 // ==========================================
 // 7. Client-Side Video Rendering & Slicing Simulation
@@ -588,28 +518,46 @@ export async function uploadClipToYouTube({ filePath, title, privacyStatus = 'pu
 }
 
 export async function uploadAllClipsToYouTube(payload) {
+  const clips = payload.clips || [];
   const batchId = `batch_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-  const total = payload.clips?.length || 4;
 
   clientBatches[batchId] = {
     id: batchId,
     batchId,
     status: 'PROCESSING',
     currentPart: 0,
-    totalParts: total,
-    progress: 5,
-    step: `Initializing intelligent multi-account upload queue for ${total} clips...`,
+    totalParts: clips.length,
+    progress: 2,
+    step: `Starting multi-account queue worker for ${clips.length} clips...`,
     uploadedClips: [],
     failedClips: [],
-    clips: payload.clips || [],
+    clips,
     privacyStatus: payload.privacyStatus || 'public'
   };
+
+  // Launch the intelligent Queue Worker
+  queueWorker.on('progress', (data) => {
+    if (data.batchId === batchId || !data.batchId) {
+      clientBatches[batchId] = {
+        ...clientBatches[batchId],
+        ...data
+      };
+    }
+  });
+
+  queueWorker.startBatch({
+    clips,
+    sourceUrl: payload.sourceUrl,
+    aspect: payload.aspect || '9:16',
+    privacyStatus: payload.privacyStatus || 'public',
+    batchId
+  });
 
   return {
     success: true,
     batchId,
-    totalParts: total,
-    message: 'Multi-account batch upload pipeline started successfully'
+    totalParts: clips.length,
+    message: `Intelligent Queue Worker active for ${clips.length} clips (Supports 20+ Clips with Zero Limit Waste)`
   };
 }
 
@@ -619,50 +567,10 @@ export async function pollBatchStatus(batchId) {
     return {
       status: 'COMPLETED',
       progress: 100,
-      step: 'Batch series completed successfully!',
+      step: 'Batch complete!',
       uploadedClips: []
     };
   }
-
-  if (batch.currentPart < batch.totalParts) {
-    const nextPart = batch.currentPart + 1;
-    const clipData = batch.clips[nextPart - 1] || { title: `Part #${nextPart}` };
-
-    try {
-      const uploadRes = await executeUploadWithRotation({
-        clipTitle: sanitizeText(clipData.title || `Viral Short Part #${nextPart}`),
-        privacyStatus: batch.privacyStatus
-      });
-
-      batch.currentPart = nextPart;
-      batch.progress = Math.round((batch.currentPart / batch.totalParts) * 100);
-      batch.step = `Uploaded Part ${batch.currentPart}/${batch.totalParts} to YouTube via ${uploadRes.accountUsed?.handle || 'Active Account'}!`;
-      
-      batch.uploadedClips.push({
-        part: batch.currentPart,
-        clipId: clipData.clipId || `clip_${batch.currentPart}`,
-        title: clipData.title,
-        shortsUrl: uploadRes.shortsUrl,
-        accountUsed: uploadRes.accountUsed?.handle,
-        rotationNote: uploadRes.rotationNote
-      });
-
-    } catch (uploadErr) {
-      batch.failedClips.push({
-        part: nextPart,
-        error: sanitizeText(uploadErr.message)
-      });
-      batch.status = 'HALTED';
-      batch.step = `Queue halted: ${sanitizeText(uploadErr.message)}`;
-      return { ...batch };
-    }
-
-  } else {
-    batch.status = 'COMPLETED';
-    batch.progress = 100;
-    batch.step = `Upload Series Complete! Published ${batch.uploadedClips.length} clips with Multi-Account Rotation.`;
-  }
-
   return { ...batch };
 }
 
