@@ -2,15 +2,29 @@ import React from 'react';
 
 /**
  * Header Component
- * Displays brand logo, multi-account rotation status badge,
- * and direct 1-click access to the YouTube Accounts Manager.
- * 100% Free & Open: No admin login walls or restrictions.
+ * Minimalist Black & White layout.
+ * Brand logo, multi-account rotation status badge,
+ * and direct links to inline sections (YouTube Accounts & Instagram).
+ * 100% Free & Open: No admin login walls or popup modals.
  */
 export default function Header({ 
   onOpenAccountsManager,
+  onOpenInstagram,
   accountsCount = 5,
   totalCapacity = 425
 }) {
+  const scrollToAccounts = () => {
+    if (onOpenAccountsManager) onOpenAccountsManager();
+    const el = document.getElementById('accounts-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const scrollToInstagram = () => {
+    if (onOpenInstagram) onOpenInstagram();
+    const el = document.getElementById('instagram-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <header>
       <div className="logo">
@@ -19,7 +33,7 @@ export default function Header({
         <span className="logo-tag">Multi-Account Viral Reach Engine</span>
       </div>
 
-      <div className="nav-status" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      <div className="nav-status" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
         {/* Free Public Engine Pill */}
         <div style={{
           display: 'flex',
@@ -27,25 +41,49 @@ export default function Header({
           gap: '6px',
           padding: '0.35rem 0.85rem',
           borderRadius: '20px',
-          background: 'rgba(37, 93, 206, 0.2)',
-          border: '1px solid rgba(37, 93, 206, 0.4)',
-          color: '#82aaff',
+          background: 'var(--bg-subtle)',
+          border: '1px solid var(--card-border)',
+          color: '#FFFFFF',
           fontSize: '0.78rem',
           fontWeight: 700
         }}>
-          <span style={{ color: '#34d399' }}>●</span>
-          <span>Unlimited Studio Active</span>
+          <span style={{ color: '#FFFFFF' }}>●</span>
+          <span>Studio Active</span>
         </div>
+
+        {/* Instagram Reels Hook Trigger */}
+        <button
+          type="button"
+          onClick={scrollToInstagram}
+          style={{
+            background: 'var(--bg-subtle)',
+            border: '1px solid var(--card-border)',
+            color: 'var(--text-muted)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '0.45rem 0.85rem',
+            fontSize: '0.8rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'all 0.2s ease'
+          }}
+          title="Jump to Instagram Reels Sync Configuration"
+        >
+          <span>📸</span>
+          <span>Instagram Hook</span>
+        </button>
 
         {/* Multi-Account Manager Trigger */}
         <button
           type="button"
-          onClick={onOpenAccountsManager}
+          onClick={scrollToAccounts}
           style={{
-            background: 'linear-gradient(135deg, #DE1110 0%, #255DCE 100%)',
+            background: '#FFFFFF',
             border: 'none',
-            color: '#FFFFFF',
-            borderRadius: '8px',
+            color: '#000000',
+            borderRadius: 'var(--radius-sm)',
             padding: '0.45rem 1rem',
             fontSize: '0.82rem',
             fontWeight: 800,
@@ -53,10 +91,9 @@ export default function Header({
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
-            transition: 'all 0.2s ease',
-            boxShadow: '0 4px 15px rgba(37, 93, 206, 0.35)'
+            transition: 'all 0.2s ease'
           }}
-          title="Open YouTube Multi-Account Manager"
+          title="Jump to YouTube Multi-Account Manager"
         >
           <span>👥</span>
           <span>YouTube Accounts ({accountsCount})</span>

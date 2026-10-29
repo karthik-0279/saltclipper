@@ -6,6 +6,7 @@ import PhonePlayer from './components/PhonePlayer';
 import ClipsList from './components/ClipsList';
 import ExportCenter from './components/ExportCenter';
 import AccountsManager from './components/AccountsManager';
+import InstagramManager from './components/InstagramManager';
 import Toast from './components/Toast';
 import { 
   fetchYouTubeStatus, 
@@ -20,17 +21,15 @@ import {
 import { getMultiAccountStats } from './services/profileManager';
 
 /**
- * AutoClip AI Studio - SaltyClipper
+ * SALT CLIPPER - Multi-Account Shorts & Reels Studio
  * 
- * 100% Free & Open Architecture:
- * - Zero admin login walls, zero restrictions.
- * - Multi-Account YouTube Integration (5+ accounts with Google OAuth & localStorage persistence).
- * - Backend-Style Queue Worker with Smart Quota Rotation (Zero Limit Waste).
- * - Continuous processing for 20+ clips at a time.
+ * Minimalist Black & White Theme Single-Page Layout:
+ * - 100% Free & Open: Zero admin login walls, zero modal overlays.
+ * - Multi-Account YouTube Integration with Google Cloud Console OAuth & localStorage.
+ * - Continuous Queue Worker supporting 20+ clips with auto-switch 403 quota rotation.
+ * - Modular Instagram Reels Integration Hook ready for Meta Graph API.
  */
 export default function App() {
-  // --- Accounts Manager State ---
-  const [isAccountsOpen, setIsAccountsOpen] = useState(false);
   const [multiStats, setMultiStats] = useState(() => getMultiAccountStats());
 
   // --- Batch Upload All Clips State (20+ Clips Queue) ---
@@ -68,6 +67,14 @@ export default function App() {
   const [toastMsg, setToastMsg] = useState('');
 
   const pollIntervalRef = useRef(null);
+
+  // Smooth scroll helper for single-page layout
+  const scrollToSection = (sectionId) => {
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   // Helper: Trigger floating toast notification
   const showToast = useCallback((msg) => {
@@ -412,9 +419,10 @@ export default function App() {
 
   return (
     <div className="container">
-      {/* Sleek Top Header (100% Free & Open) */}
+      {/* Sleek Top Header (100% Free & Open Single-Page Layout) */}
       <Header 
-        onOpenAccountsManager={() => setIsAccountsOpen(true)}
+        onOpenAccountsManager={() => scrollToSection('accounts-section')}
+        onOpenInstagram={() => scrollToSection('instagram-section')}
         accountsCount={multiStats?.totalProfiles || 5}
         totalCapacity={multiStats?.totalCapacity || 425}
       />
@@ -426,7 +434,7 @@ export default function App() {
         onToggleAutoUpload={setAutoUploadYT}
         privacy={ytPrivacy}
         onChangePrivacy={setYtPrivacy}
-        onOpenAccountsManager={() => setIsAccountsOpen(true)}
+        onOpenAccountsManager={() => scrollToSection('accounts-section')}
         onShowToast={showToast}
         quota={ytQuota}
       />
@@ -493,11 +501,17 @@ export default function App() {
         </div>
       </main>
 
-      {/* Clean Footer (No Admin Login Clutter) */}
+      {/* Section 1: Inline Multi-Account YouTube Manager (Single-Page, Zero Popups) */}
+      <AccountsManager onShowToast={showToast} />
+
+      {/* Section 2: Inline Instagram Reels Hook (Future Integration Placeholder) */}
+      <InstagramManager onShowToast={showToast} />
+
+      {/* Clean Minimalist Footer */}
       <footer style={{
         marginTop: '3.5rem',
         padding: '1.5rem 0',
-        borderTop: '1px solid rgba(37, 93, 206, 0.2)',
+        borderTop: '1px solid var(--card-border)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -507,37 +521,42 @@ export default function App() {
         gap: '0.75rem'
       }}>
         <div>
-          <span>⚡ SALT CLIPPER Studio &bull; 100% Free & Open Multi-Account Shorts Engine</span>
+          <span style={{ color: '#FFFFFF', fontWeight: 700 }}>⚡ SALT CLIPPER</span> &bull; 100% Free Single-Page Multi-Account Studio
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
           <button
             type="button"
-            onClick={() => setIsAccountsOpen(true)}
+            onClick={() => scrollToSection('accounts-section')}
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#82aaff',
+              color: '#FFFFFF',
               fontWeight: 700,
               fontSize: '0.82rem',
               cursor: 'pointer',
               textDecoration: 'underline'
             }}
           >
-            👥 Manage YouTube Accounts Pool
+            👥 YouTube Multi-Account Pool
           </button>
-          <span style={{ color: '#34d399', fontWeight: 700 }}>● Continuous Worker Ready</span>
+          <button
+            type="button"
+            onClick={() => scrollToSection('instagram-section')}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted)',
+              fontWeight: 700,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              textDecoration: 'underline'
+            }}
+          >
+            📸 Instagram Sync Hook
+          </button>
+          <span style={{ color: '#FFFFFF', fontWeight: 700 }}>● Continuous Queue Active</span>
         </div>
       </footer>
-
-      {/* YouTube Multi-Account Manager Modal */}
-      <AccountsManager 
-        isOpen={isAccountsOpen}
-        onClose={() => {
-          setIsAccountsOpen(false);
-          refreshAccountsAndQuota();
-        }}
-        onShowToast={showToast}
-      />
 
       {/* Floating Notifications */}
       <Toast message={toastMsg} />
