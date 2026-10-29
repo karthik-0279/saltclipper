@@ -240,7 +240,7 @@ export default function App() {
               showToast('🎉 Published to YouTube Shorts successfully!');
             } else {
               // Trigger client download
-              const sampleBlob = new Blob([`AutoClip AI - Rendered High-Bitrate MP4: ${status.filename || 'clip.mp4'}`], { type: 'video/mp4' });
+              const sampleBlob = new Blob([`SALT CLIPPER - Rendered High-Bitrate MP4: ${status.filename || 'clip.mp4'}`], { type: 'video/mp4' });
               const artifactUrl = URL.createObjectURL(sampleBlob);
               const a = document.createElement('a');
               a.href = artifactUrl;
@@ -507,7 +507,7 @@ export default function App() {
         gap: '0.75rem'
       }}>
         <div>
-          <span>⚡ AutoClip AI Studio (SaltyClipper) &bull; 100% Free & Open Pipeline</span>
+          <span>⚡ SALT CLIPPER Studio &bull; 100% Free & Open Multi-Account Shorts Engine</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <button

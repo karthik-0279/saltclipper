@@ -202,7 +202,7 @@ export default function AccountsManager({ isOpen, onClose, onShowToast }) {
           </div>
           <div>
             <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#FFFFFF' }}>
-              YouTube Multi-Account Manager
+              SALT CLIPPER &bull; YouTube Accounts Manager
             </h2>
             <p style={{ margin: '4px 0 0', fontSize: '0.86rem', color: '#8DA4D0' }}>
               Intelligent Quota Controller &bull; Automatic 403 Failover &bull; 20+ Clip Continuous Queue

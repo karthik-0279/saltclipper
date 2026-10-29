@@ -15,8 +15,8 @@ export default function Header({
     <header>
       <div className="logo">
         <div className="logo-icon">⚡</div>
-        <span>AutoClip AI</span>
-        <span className="logo-tag">Multi-Account Reach Engine</span>
+        <span>SALT CLIPPER</span>
+        <span className="logo-tag">Multi-Account Viral Reach Engine</span>
       </div>
 
       <div className="nav-status" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
