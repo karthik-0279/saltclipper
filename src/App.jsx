@@ -5,15 +5,13 @@ import VideoInput from './components/VideoInput';
 import PhonePlayer from './components/PhonePlayer';
 import ClipsList from './components/ClipsList';
 import ExportCenter from './components/ExportCenter';
-import AccountsManager from './components/AccountsManager';
-import InstagramManager from './components/InstagramManager';
+import GoogleProjectsManager from './components/GoogleProjectsManager';
 import Toast from './components/Toast';
 import { 
   fetchYouTubeStatus, 
   initiateClipRender, 
   pollJobStatus, 
   uploadAllClipsToYouTube, 
-  pollBatchStatus, 
   fetchYouTubeQuota,
   sanitizeUrl,
   queueWorker
@@ -21,13 +19,13 @@ import {
 import { getMultiAccountStats } from './services/profileManager';
 
 /**
- * SALT CLIPPER - Multi-Account Shorts & Reels Studio
+ * SALT CLIPPER - Multi-Project Viral Video Studio
  * 
- * Minimalist Black & White Theme Single-Page Layout:
- * - 100% Free & Open: Zero admin login walls, zero modal overlays.
- * - Multi-Account YouTube Integration with Google Cloud Console OAuth & localStorage.
- * - Continuous Queue Worker supporting 20+ clips with auto-switch 403 quota rotation.
- * - Modular Instagram Reels Integration Hook ready for Meta Graph API.
+ * Minimalist Black & White Theme (Single-Page Expanded Layout):
+ * - ZERO Popups, ZERO Modals, ZERO Admin Login Walls.
+ * - Multi-Google Cloud Console Projects Rotation (5 Projects) with instant 403 failover.
+ * - Instant Auto-Upload: Clips immediately trigger background upload queue on generation.
+ * - 100% Free & Open Architecture.
  */
 export default function App() {
   const [multiStats, setMultiStats] = useState(() => getMultiAccountStats());
@@ -82,7 +80,7 @@ export default function App() {
     setTimeout(() => setToastMsg(''), 3500);
   }, []);
 
-  // 1. Refresh Multi-Account Status & Quota Pool
+  // 1. Refresh Multi-Project Status & Quota Pool
   const refreshAccountsAndQuota = useCallback(async () => {
     try {
       const stats = getMultiAccountStats();
@@ -92,17 +90,16 @@ export default function App() {
       const quotaData = await fetchYouTubeQuota();
       setYtQuota(quotaData);
     } catch (e) {
-      console.warn('Could not refresh YouTube accounts state:', e);
+      console.warn('Could not refresh YouTube projects state:', e);
     }
   }, []);
 
   useEffect(() => {
     refreshAccountsAndQuota();
 
-    // Listen for OAuth completion message from Google popup window
     const handleMessage = (e) => {
       if (e.data?.type === 'YOUTUBE_CONNECTED') {
-        showToast('🎉 Google / YouTube Channel Linked Successfully!');
+        showToast('🎉 Google Cloud Console Project Connected Successfully!');
         refreshAccountsAndQuota();
       }
     };
@@ -110,14 +107,79 @@ export default function App() {
     return () => window.removeEventListener('message', handleMessage);
   }, [refreshAccountsAndQuota, showToast]);
 
-  // Clean up polling timer if unmounted
   useEffect(() => {
     return () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     };
   }, []);
 
-  // 2. Video Analysis & Clip Generation (Generates a full 24-clip series)
+  // 2. Intelligent Multi-Project Batch Upload Controller
+  const triggerAutoUpload = useCallback(async (clipsList, source) => {
+    if (!clipsList || clipsList.length === 0) return;
+
+    setIsBatchUploading(true);
+    setBatchStatus({
+      status: 'PROCESSING',
+      currentPart: 1,
+      totalParts: clipsList.length,
+      progress: 3,
+      step: `⚡ Instant Auto-Upload Launched! Distributing ${clipsList.length} clips across 5 Google Cloud Projects...`,
+      uploadedClips: [],
+      failedClips: []
+    });
+
+    try {
+      const unsubscribeProgress = queueWorker.on('progress', (data) => {
+        setBatchStatus(prev => ({ ...prev, ...data }));
+        if (data.status === 'COMPLETED' || data.status === 'HALTED' || data.status === 'ERROR') {
+          setIsBatchUploading(false);
+          refreshAccountsAndQuota();
+        }
+      });
+
+      const unsubscribeRotate = queueWorker.on('accountRotate', (rotData) => {
+        showToast(`⚡ Project Auto-Switched: Now uploading via ${rotData.to}!`);
+        refreshAccountsAndQuota();
+      });
+
+      const unsubscribeComplete = queueWorker.on('complete', (summary) => {
+        setIsBatchUploading(false);
+        refreshAccountsAndQuota();
+        if (summary.success) {
+          showToast(`🎉 Batch Upload Complete! Published ${summary.uploaded} clips.`);
+        }
+        unsubscribeProgress();
+        unsubscribeRotate();
+        unsubscribeComplete();
+      });
+
+      await uploadAllClipsToYouTube({
+        sourceUrl: source || videoUrl,
+        clips: clipsList.map(c => ({
+          clipId: c.id,
+          startSec: c.startSec,
+          endSec: c.endSec,
+          title: c.title
+        })),
+        aspect: ratio,
+        privacyStatus: ytPrivacy
+      });
+
+    } catch (err) {
+      setIsBatchUploading(false);
+      setBatchStatus({
+        status: 'ERROR',
+        error: err.message,
+        currentPart: 0,
+        totalParts: clipsList.length,
+        progress: 0,
+        step: `Failed to initiate queue: ${err.message}`
+      });
+      showToast(`Queue Error: ${err.message}`);
+    }
+  }, [ratio, ytPrivacy, videoUrl, refreshAccountsAndQuota, showToast]);
+
+  // 3. Video Analysis & Clip Generation with INSTANT Auto-Upload
   const handleAnalyzeUrl = (rawUrl) => {
     const cleanUrl = sanitizeUrl(rawUrl);
     if (!cleanUrl) {
@@ -135,7 +197,7 @@ export default function App() {
 
     setTimeout(() => {
       setIsAnalyzing(false);
-      // Generate a series of 24 high-retention clips (20+ clips requirement)
+      // Generate 24 high-retention clips (20+ clips requirement)
       const initial24Clips = [
         { id: '1', startSec: 45, endSec: 110, score: 99, projectedViews: '2.4M', title: 'Curiosity Loop & Shocking Twist' },
         { id: '2', startSec: 180, endSec: 245, score: 97, projectedViews: '1.9M', title: 'High-Retention Breakdown' },
@@ -164,8 +226,13 @@ export default function App() {
       ];
       setClips(initial24Clips);
       setActiveClipIndex(0);
-      showToast('⚡ Detected 24 high-reach viral clips ready for batch upload!');
-    }, 700);
+      showToast('⚡ 24 viral clips generated! Instant auto-upload started across 5 Google Cloud projects.');
+
+      // INSTANT AUTO-UPLOAD: Trigger continuous upload queue immediately with zero manual clicks
+      if (autoUploadYT) {
+        triggerAutoUpload(initial24Clips, cleanUrl);
+      }
+    }, 600);
   };
 
   const handleSelectLocalFile = (file) => {
@@ -174,7 +241,7 @@ export default function App() {
     setVideoType('local');
     setVideoUrl(file.name);
 
-    // Generate 20+ sequential clips from local file
+    // Generate 22 sequential clips from local file
     const fileClips = Array.from({ length: 22 }, (_, i) => ({
       id: String(i + 1),
       startSec: i * 65,
@@ -186,7 +253,12 @@ export default function App() {
 
     setClips(fileClips);
     setActiveClipIndex(0);
-    showToast(`Loaded local video file! Generated ${fileClips.length} clips.`);
+    showToast(`⚡ Generated ${fileClips.length} clips! Instant auto-upload queue launched.`);
+
+    // INSTANT AUTO-UPLOAD: Trigger continuous upload queue immediately with zero manual clicks
+    if (autoUploadYT) {
+      triggerAutoUpload(fileClips, file.name);
+    }
   };
 
   const handleLoadMoreClips = (count = 10) => {
@@ -203,7 +275,7 @@ export default function App() {
     showToast(`Added ${count} more clips to queue feed! (Total: ${clips.length + count})`);
   };
 
-  // 3. Render & Download Pipeline
+  // 4. Render & Download Pipeline
   const handleStartRender = async () => {
     const currentClip = clips[activeClipIndex];
     if (!currentClip) return;
@@ -243,10 +315,9 @@ export default function App() {
                 shortsUrl: status.youtubeUrl,
                 videoId: status.youtubeVideoId
               });
-              setRenderStatusText(`🎉 Published to YouTube Shorts via ${status.accountUsed?.handle || 'Active Account'}!`);
+              setRenderStatusText(`🎉 Published to YouTube Shorts via ${status.accountUsed?.name || 'Active Project'}!`);
               showToast('🎉 Published to YouTube Shorts successfully!');
             } else {
-              // Trigger client download
               const sampleBlob = new Blob([`SALT CLIPPER - Rendered High-Bitrate MP4: ${status.filename || 'clip.mp4'}`], { type: 'video/mp4' });
               const artifactUrl = URL.createObjectURL(sampleBlob);
               const a = document.createElement('a');
@@ -278,7 +349,7 @@ export default function App() {
     }
   };
 
-  // 4. Individual Clip Upload Handler
+  // 5. Individual Clip Upload Handler
   const handleUploadSingleClip = async (clipOrIndex) => {
     let clipToUpload = typeof clipOrIndex === 'number' ? clips[clipOrIndex] : clipOrIndex;
     if (!clipToUpload && clips.length > 0) clipToUpload = clips[activeClipIndex];
@@ -346,95 +417,27 @@ export default function App() {
     }
   };
 
-  // 5. Intelligent Multi-Account Batch Upload (20+ Clips Queue Worker)
-  const handleUploadAllToYouTube = async () => {
-    if (!clips || clips.length === 0) {
-      showToast('Please analyze a video first to generate clips.');
-      return;
-    }
-
-    setIsBatchUploading(true);
-    setBatchStatus({
-      status: 'PROCESSING',
-      currentPart: 1,
-      totalParts: clips.length,
-      progress: 3,
-      step: `Initializing intelligent multi-account queue worker for ${clips.length} clips...`,
-      uploadedClips: [],
-      failedClips: []
-    });
-
-    try {
-      // Connect queueWorker progress listener
-      const unsubscribeProgress = queueWorker.on('progress', (data) => {
-        setBatchStatus(prev => ({ ...prev, ...data }));
-        if (data.status === 'COMPLETED' || data.status === 'HALTED' || data.status === 'ERROR') {
-          setIsBatchUploading(false);
-          refreshAccountsAndQuota();
-        }
-      });
-
-      const unsubscribeRotate = queueWorker.on('accountRotate', (rotData) => {
-        showToast(`⚡ Account Rotated: Switched to ${rotData.to}!`);
-        refreshAccountsAndQuota();
-      });
-
-      const unsubscribeComplete = queueWorker.on('complete', (summary) => {
-        setIsBatchUploading(false);
-        refreshAccountsAndQuota();
-        if (summary.success) {
-          showToast(`🎉 Batch Upload Complete! Published ${summary.uploaded} clips.`);
-        }
-        unsubscribeProgress();
-        unsubscribeRotate();
-        unsubscribeComplete();
-      });
-
-      // Start batch via API wrapper
-      await uploadAllClipsToYouTube({
-        sourceUrl: videoUrl,
-        clips: clips.map(c => ({
-          clipId: c.id,
-          startSec: c.startSec,
-          endSec: c.endSec,
-          title: c.title
-        })),
-        aspect: ratio,
-        privacyStatus: ytPrivacy
-      });
-
-    } catch (err) {
-      setIsBatchUploading(false);
-      setBatchStatus({
-        status: 'ERROR',
-        error: err.message,
-        currentPart: 0,
-        totalParts: clips.length,
-        progress: 0,
-        step: `Failed to initiate queue: ${err.message}`
-      });
-      showToast(`Queue Error: ${err.message}`);
-    }
+  const handleManualUploadAll = () => {
+    triggerAutoUpload(clips, videoUrl);
   };
 
   return (
     <div className="container">
       {/* Sleek Top Header (100% Free & Open Single-Page Layout) */}
       <Header 
-        onOpenAccountsManager={() => scrollToSection('accounts-section')}
-        onOpenInstagram={() => scrollToSection('instagram-section')}
-        accountsCount={multiStats?.totalProfiles || 5}
+        onOpenProjectsManager={() => scrollToSection('projects-section')}
+        projectsCount={multiStats?.totalProfiles || 5}
         totalCapacity={multiStats?.totalCapacity || 425}
       />
 
-      {/* YouTube Connection & Multi-Account Rotation Bar */}
+      {/* YouTube Connection & Multi-Project Rotation Bar */}
       <YouTubeBar 
         ytStatus={ytStatus}
         autoUpload={autoUploadYT}
         onToggleAutoUpload={setAutoUploadYT}
         privacy={ytPrivacy}
         onChangePrivacy={setYtPrivacy}
-        onOpenAccountsManager={() => scrollToSection('accounts-section')}
+        onOpenProjectsManager={() => scrollToSection('projects-section')}
         onShowToast={showToast}
         quota={ytQuota}
       />
@@ -443,10 +446,10 @@ export default function App() {
       <section className="hero">
         <div className="hero-badge">
           <span>⚡</span>
-          <span>Multi-Account YouTube Automation &bull; 20+ Clips Continuous Pipeline</span>
+          <span>Google Cloud 5-Project Rotation &bull; Instant Auto-Upload Pipeline</span>
         </div>
         <h1>Generate & Upload <span className="gradient-text">20+ Viral Shorts</span> Seamlessly</h1>
-        <p>AI scans dialogue intensity, curiosity gaps, and retention spikes across the entire video. Automatic multi-account failover guarantees zero wasted limits.</p>
+        <p>AI scans dialogue intensity, curiosity gaps, and retention spikes across the entire video. Automatic 5-project failover guarantees zero wasted limits.</p>
       </section>
 
       {/* Video Input Box */}
@@ -470,7 +473,7 @@ export default function App() {
           />
         </div>
 
-        {/* Right Column: 20+ Highlight Clips & Multi-Account Batch Queue */}
+        {/* Right Column: 20+ Highlight Clips & Multi-Project Batch Queue */}
         <div>
           <ClipsList 
             clips={clips}
@@ -490,7 +493,7 @@ export default function App() {
             onChangeRatio={setRatio}
             onStartRender={handleStartRender}
             onManualUploadYT={() => handleUploadSingleClip(activeClipIndex)}
-            onUploadAllToYouTube={handleUploadAllToYouTube}
+            onUploadAllToYouTube={handleManualUploadAll}
             isRendering={isRendering}
             renderProgress={renderProgress}
             renderStatusText={renderStatusText}
@@ -501,11 +504,8 @@ export default function App() {
         </div>
       </main>
 
-      {/* Section 1: Inline Multi-Account YouTube Manager (Single-Page, Zero Popups) */}
-      <AccountsManager onShowToast={showToast} />
-
-      {/* Section 2: Inline Instagram Reels Hook (Future Integration Placeholder) */}
-      <InstagramManager onShowToast={showToast} />
+      {/* Expanded Single-Page Dashboard: 5 Google Cloud Projects Rotation (No Popups/Modals) */}
+      <GoogleProjectsManager onShowToast={showToast} />
 
       {/* Clean Minimalist Footer */}
       <footer style={{
@@ -521,12 +521,12 @@ export default function App() {
         gap: '0.75rem'
       }}>
         <div>
-          <span style={{ color: '#FFFFFF', fontWeight: 700 }}>⚡ SALT CLIPPER</span> &bull; 100% Free Single-Page Multi-Account Studio
+          <span style={{ color: '#FFFFFF', fontWeight: 700 }}>⚡ SALT CLIPPER</span> &bull; 100% Free Single-Page Multi-Project Studio
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
           <button
             type="button"
-            onClick={() => scrollToSection('accounts-section')}
+            onClick={() => scrollToSection('projects-section')}
             style={{
               background: 'transparent',
               border: 'none',
@@ -537,24 +537,9 @@ export default function App() {
               textDecoration: 'underline'
             }}
           >
-            👥 YouTube Multi-Account Pool
+            ☁ Google Cloud 5-Projects Pool
           </button>
-          <button
-            type="button"
-            onClick={() => scrollToSection('instagram-section')}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-muted)',
-              fontWeight: 700,
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              textDecoration: 'underline'
-            }}
-          >
-            📸 Instagram Sync Hook
-          </button>
-          <span style={{ color: '#FFFFFF', fontWeight: 700 }}>● Continuous Queue Active</span>
+          <span style={{ color: '#FFFFFF', fontWeight: 700 }}>● Instant Auto-Upload Enabled</span>
         </div>
       </footer>
 

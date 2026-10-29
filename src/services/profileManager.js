@@ -1,146 +1,108 @@
 /**
- * YouTube Multi-Account Profile Manager & Intelligent Rotation Controller
+ * Google Cloud Console Projects & Multi-Account Rotation Controller
  * 
- * Provides:
- * - Pre-configured 5 initial YouTube profiles (unlimited scalable storage in localStorage)
- * - Dynamic addition of unlimited YouTube accounts/profiles
- * - Intelligent Account Rotation: Automatically rotates to the next available account
- *   when an account reaches its 85 uploads/day safe quota or encounters a 403 Quota Exceeded error.
- * - Multi-account quota aggregation ($N \times 85$ daily upload capacity)
- * - Audit logging of all account rotation events
- * - 100% Client-side state management (zero server crashes on Vercel)
+ * Production Architecture:
+ * - 5 Google Cloud Console Projects pre-configured and securely managed in localStorage.
+ * - Stores credentials: Project ID, Client ID, Client Secret, API Key, Linked YouTube Channel Handle.
+ * - Intelligent Quota Auto-Switch (Zero Limit Waste):
+ *   If Project 1 encounters a 403 Quota Exceeded error or hits its daily limit,
+ *   the queue worker instantly auto-switches to Project 2 (and onwards to Project 5)
+ *   so 20+ clips upload continuously without interruption or lost progress.
+ * - 100% Client-side state in localStorage.
  */
 
 export const PROFILES_STORAGE_KEY = 'autoclip_youtube_profiles';
+export const GCP_PROJECTS_STORAGE_KEY = 'saltclipper_gcp_projects';
 export const ROTATION_LOGS_STORAGE_KEY = 'autoclip_youtube_rotation_logs';
 
-// 5 Pre-configured Initial YouTube Profiles
-const INITIAL_PROFILES = [
+// 5 Dedicated Initial Google Cloud Console Projects
+export const INITIAL_GCP_PROJECTS = [
   {
-    id: 'yt_prof_1',
-    name: 'AutoClip Official Main',
-    handle: '@AutoClipMain',
-    email: 'main@autoclip.ai',
+    id: 'gcp_proj_1',
+    projectNumber: 1,
+    projectId: 'saltclipper-prod-01',
+    projectName: 'Google Cloud Project 1 (Alpha)',
+    handle: '@SaltClipperAlpha',
+    email: 'project1@saltclipper-cloud.iam.gserviceaccount.com',
     dailyLimit: 85,
     usedToday: 0,
     status: 'ACTIVE', // ACTIVE | STANDBY | EXHAUSTED
-    subscriberCount: '124K',
-    clientId: '7829104-autoclip-main.apps.googleusercontent.com',
+    clientId: '7829104-saltclipper-proj1.apps.googleusercontent.com',
+    clientSecret: 'GOCSPX-sampleSecretProj1_Alpha',
+    apiKey: 'AIzaSyA_Proj1_GoogleCloudApiAlphaKey99',
+    quotaUnitsUsed: 0,
+    maxQuotaUnits: 10000,
     createdAt: new Date(Date.now() - 86400000 * 30).toISOString()
   },
   {
-    id: 'yt_prof_2',
-    name: 'AutoClip Shorts Network',
-    handle: '@AutoClipShorts',
-    email: 'shorts@autoclip.ai',
+    id: 'gcp_proj_2',
+    projectNumber: 2,
+    projectId: 'saltclipper-prod-02',
+    projectName: 'Google Cloud Project 2 (Beta)',
+    handle: '@SaltClipperBeta',
+    email: 'project2@saltclipper-cloud.iam.gserviceaccount.com',
     dailyLimit: 85,
     usedToday: 0,
     status: 'STANDBY',
-    subscriberCount: '89K',
-    clientId: '7829104-autoclip-shorts.apps.googleusercontent.com',
+    clientId: '7829104-saltclipper-proj2.apps.googleusercontent.com',
+    clientSecret: 'GOCSPX-sampleSecretProj2_Beta',
+    apiKey: 'AIzaSyB_Proj2_GoogleCloudApiBetaKey88',
+    quotaUnitsUsed: 0,
+    maxQuotaUnits: 10000,
     createdAt: new Date(Date.now() - 86400000 * 25).toISOString()
   },
   {
-    id: 'yt_prof_3',
-    name: 'Viral Factory HQ',
-    handle: '@ViralFactory',
-    email: 'factory@autoclip.ai',
+    id: 'gcp_proj_3',
+    projectNumber: 3,
+    projectId: 'saltclipper-prod-03',
+    projectName: 'Google Cloud Project 3 (Gamma)',
+    handle: '@SaltClipperGamma',
+    email: 'project3@saltclipper-cloud.iam.gserviceaccount.com',
     dailyLimit: 85,
     usedToday: 0,
     status: 'STANDBY',
-    subscriberCount: '215K',
-    clientId: '7829104-viral-factory.apps.googleusercontent.com',
+    clientId: '7829104-saltclipper-proj3.apps.googleusercontent.com',
+    clientSecret: 'GOCSPX-sampleSecretProj3_Gamma',
+    apiKey: 'AIzaSyC_Proj3_GoogleCloudApiGammaKey77',
+    quotaUnitsUsed: 0,
+    maxQuotaUnits: 10000,
     createdAt: new Date(Date.now() - 86400000 * 20).toISOString()
   },
   {
-    id: 'yt_prof_4',
-    name: 'Daily Clips Media',
-    handle: '@DailyClipsHub',
-    email: 'daily@autoclip.ai',
+    id: 'gcp_proj_4',
+    projectNumber: 4,
+    projectId: 'saltclipper-prod-04',
+    projectName: 'Google Cloud Project 4 (Delta)',
+    handle: '@SaltClipperDelta',
+    email: 'project4@saltclipper-cloud.iam.gserviceaccount.com',
     dailyLimit: 85,
     usedToday: 0,
     status: 'STANDBY',
-    subscriberCount: '62K',
-    clientId: '7829104-daily-clips.apps.googleusercontent.com',
+    clientId: '7829104-saltclipper-proj4.apps.googleusercontent.com',
+    clientSecret: 'GOCSPX-sampleSecretProj4_Delta',
+    apiKey: 'AIzaSyD_Proj4_GoogleCloudApiDeltaKey66',
+    quotaUnitsUsed: 0,
+    maxQuotaUnits: 10000,
     createdAt: new Date(Date.now() - 86400000 * 15).toISOString()
   },
   {
-    id: 'yt_prof_5',
-    name: 'Shorts Empire Global',
-    handle: '@ShortsEmpire',
-    email: 'empire@autoclip.ai',
+    id: 'gcp_proj_5',
+    projectNumber: 5,
+    projectId: 'saltclipper-prod-05',
+    projectName: 'Google Cloud Project 5 (Epsilon)',
+    handle: '@SaltClipperEpsilon',
+    email: 'project5@saltclipper-cloud.iam.gserviceaccount.com',
     dailyLimit: 85,
     usedToday: 0,
     status: 'STANDBY',
-    subscriberCount: '340K',
-    clientId: '7829104-shorts-empire.apps.googleusercontent.com',
+    clientId: '7829104-saltclipper-proj5.apps.googleusercontent.com',
+    clientSecret: 'GOCSPX-sampleSecretProj5_Epsilon',
+    apiKey: 'AIzaSyE_Proj5_GoogleCloudApiEpsilonKey55',
+    quotaUnitsUsed: 0,
+    maxQuotaUnits: 10000,
     createdAt: new Date(Date.now() - 86400000 * 10).toISOString()
   }
 ];
-
-/**
- * Retrieve all YouTube profiles from localStorage
- * Initializes with the 5 pre-configured accounts if empty
- */
-export function getYoutubeProfiles() {
-  try {
-    const raw = localStorage.getItem(PROFILES_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-    }
-  } catch (e) {
-    console.warn('Failed to parse stored YouTube profiles, re-seeding:', e);
-  }
-
-  // Seed with 5 initial accounts
-  saveYoutubeProfiles(INITIAL_PROFILES);
-  return INITIAL_PROFILES;
-}
-
-/**
- * Save profiles array to localStorage
- */
-export function saveYoutubeProfiles(profiles) {
-  try {
-    localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(profiles));
-  } catch (e) {
-    console.error('Error saving YouTube profiles:', e);
-  }
-}
-
-/**
- * Get currently ACTIVE profile.
- * Falls back to first available profile if none is active.
- */
-export function getActiveProfile() {
-  const profiles = getYoutubeProfiles();
-  let active = profiles.find(p => p.status === 'ACTIVE');
-  if (!active && profiles.length > 0) {
-    active = profiles[0];
-    active.status = 'ACTIVE';
-    saveYoutubeProfiles(profiles);
-  }
-  return active || null;
-}
-
-/**
- * Set a specific profile as ACTIVE, marking all others as STANDBY (or EXHAUSTED if quota full)
- */
-export function setActiveProfile(profileId) {
-  const profiles = getYoutubeProfiles();
-  const updated = profiles.map(p => {
-    if (p.id === profileId) {
-      return { ...p, status: 'ACTIVE' };
-    }
-    const isExhausted = p.usedToday >= p.dailyLimit;
-    return { ...p, status: isExhausted ? 'EXHAUSTED' : 'STANDBY' };
-  });
-  saveYoutubeProfiles(updated);
-  return updated;
-}
 
 function sanitize(str) {
   if (typeof str !== 'string') return '';
@@ -153,47 +115,93 @@ function sanitize(str) {
 }
 
 /**
- * Dynamically add a new YouTube profile (Unlimited accounts supported)
+ * Retrieve the 5 Google Cloud Console projects from localStorage
  */
-export function addNewProfile({
-  name,
-  handle,
-  email,
-  dailyLimit = 85,
-  clientId = '',
-  clientSecret = ''
-}) {
-  const profiles = getYoutubeProfiles();
-  const rawHandle = (handle || '').trim();
-  const cleanHandle = sanitize(rawHandle.startsWith('@') ? rawHandle : `@${rawHandle || 'NewCreator'}`);
+export function getYoutubeProfiles() {
+  try {
+    const raw = localStorage.getItem(GCP_PROJECTS_STORAGE_KEY) || localStorage.getItem(PROFILES_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to parse stored Google Cloud projects, re-seeding:', e);
+  }
 
-  const newProfile = {
-    id: `yt_prof_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-    name: sanitize(name?.trim() || `YouTube Channel #${profiles.length + 1}`),
-    handle: cleanHandle,
-    email: sanitize(email?.trim() || `creator_${profiles.length + 1}@youtube.com`),
-    dailyLimit: Math.min(500, Math.max(1, Number(dailyLimit) || 85)),
-    usedToday: 0,
-    status: profiles.length === 0 ? 'ACTIVE' : 'STANDBY',
-    subscriberCount: '1K',
-    clientId: sanitize(clientId?.trim() || `mock-oauth-client-${Date.now()}`),
-    clientSecret: sanitize(clientSecret?.trim() || ''),
-    createdAt: new Date().toISOString()
-  };
-
-  const updated = [...profiles, newProfile];
-  saveYoutubeProfiles(updated);
-  return newProfile;
+  saveYoutubeProfiles(INITIAL_GCP_PROJECTS);
+  return INITIAL_GCP_PROJECTS;
 }
 
+export const getGoogleProjects = getYoutubeProfiles;
+
 /**
- * Update an existing profile's fields
+ * Persist projects to localStorage
  */
-export function updateProfile(id, updates) {
-  const profiles = getYoutubeProfiles();
-  const updated = profiles.map(p => {
-    if (p.id === id) {
-      return { ...p, ...updates };
+export function saveYoutubeProfiles(projects) {
+  try {
+    const serialized = JSON.stringify(projects);
+    localStorage.setItem(GCP_PROJECTS_STORAGE_KEY, serialized);
+    localStorage.setItem(PROFILES_STORAGE_KEY, serialized);
+  } catch (e) {
+    console.error('Error saving Google Cloud projects:', e);
+  }
+}
+
+export const saveGoogleProjects = saveYoutubeProfiles;
+
+/**
+ * Get currently ACTIVE Google Cloud Project
+ */
+export function getActiveProfile() {
+  const projects = getYoutubeProfiles();
+  let active = projects.find(p => p.status === 'ACTIVE');
+  if (!active && projects.length > 0) {
+    active = projects[0];
+    active.status = 'ACTIVE';
+    saveYoutubeProfiles(projects);
+  }
+  return active || null;
+}
+
+export const getActiveProject = getActiveProfile;
+
+/**
+ * Set a specific project as ACTIVE
+ */
+export function setActiveProfile(projectId) {
+  const projects = getYoutubeProfiles();
+  const updated = projects.map(p => {
+    if (p.id === projectId || p.projectId === projectId) {
+      return { ...p, status: 'ACTIVE' };
+    }
+    const isExhausted = p.usedToday >= p.dailyLimit;
+    return { ...p, status: isExhausted ? 'EXHAUSTED' : 'STANDBY' };
+  });
+  saveYoutubeProfiles(updated);
+  return updated;
+}
+
+export const setActiveProject = setActiveProfile;
+
+/**
+ * Update credentials or details for a Google Cloud Project (1-5)
+ */
+export function updateProjectCredentials(projectId, updates) {
+  const projects = getYoutubeProfiles();
+  const updated = projects.map(p => {
+    if (p.id === projectId || p.projectId === projectId) {
+      return {
+        ...p,
+        ...updates,
+        projectId: updates.projectId ? sanitize(updates.projectId.trim()) : p.projectId,
+        clientId: updates.clientId ? sanitize(updates.clientId.trim()) : p.clientId,
+        clientSecret: updates.clientSecret ? sanitize(updates.clientSecret.trim()) : p.clientSecret,
+        apiKey: updates.apiKey ? sanitize(updates.apiKey.trim()) : p.apiKey,
+        handle: updates.handle ? sanitize(updates.handle.trim()) : p.handle,
+        dailyLimit: updates.dailyLimit ? Math.max(1, Number(updates.dailyLimit) || 85) : p.dailyLimit
+      };
     }
     return p;
   });
@@ -201,19 +209,60 @@ export function updateProfile(id, updates) {
   return updated;
 }
 
+export const updateProfile = updateProjectCredentials;
+
 /**
- * Delete a profile (prevents deleting the last remaining profile)
+ * Add a new Google Cloud Project / Profile
+ */
+export function addNewProfile({
+  name,
+  handle,
+  email,
+  dailyLimit = 85,
+  clientId = '',
+  clientSecret = '',
+  apiKey = '',
+  projectId = ''
+}) {
+  const projects = getYoutubeProfiles();
+  const rawHandle = (handle || '').trim();
+  const cleanHandle = sanitize(rawHandle.startsWith('@') ? rawHandle : `@${rawHandle || 'SaltClipperChannel'}`);
+
+  const newProject = {
+    id: `gcp_proj_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    projectNumber: projects.length + 1,
+    projectId: sanitize(projectId?.trim() || `saltclipper-prod-${String(projects.length + 1).padStart(2, '0')}`),
+    projectName: sanitize(name?.trim() || `Google Cloud Project ${projects.length + 1}`),
+    handle: cleanHandle,
+    email: sanitize(email?.trim() || `project${projects.length + 1}@saltclipper-cloud.iam.gserviceaccount.com`),
+    dailyLimit: Math.min(500, Math.max(1, Number(dailyLimit) || 85)),
+    usedToday: 0,
+    status: projects.length === 0 ? 'ACTIVE' : 'STANDBY',
+    clientId: sanitize(clientId?.trim() || `mock-oauth-client-${Date.now()}`),
+    clientSecret: sanitize(clientSecret?.trim() || ''),
+    apiKey: sanitize(apiKey?.trim() || ''),
+    quotaUnitsUsed: 0,
+    maxQuotaUnits: 10000,
+    createdAt: new Date().toISOString()
+  };
+
+  const updated = [...projects, newProject];
+  saveYoutubeProfiles(updated);
+  return newProject;
+}
+
+/**
+ * Delete a profile/project (keeps at least 1)
  */
 export function deleteProfile(id) {
-  const profiles = getYoutubeProfiles();
-  if (profiles.length <= 1) {
-    throw new Error('At least one YouTube profile must remain configured.');
+  const projects = getYoutubeProfiles();
+  if (projects.length <= 1) {
+    throw new Error('At least one Google Cloud project must remain configured.');
   }
 
-  const target = profiles.find(p => p.id === id);
-  const remaining = profiles.filter(p => p.id !== id);
+  const target = projects.find(p => p.id === id || p.projectId === id);
+  const remaining = projects.filter(p => p.id !== id && p.projectId !== id);
 
-  // If deleted profile was active, designate the first remaining as active
   if (target?.status === 'ACTIVE' && remaining.length > 0) {
     remaining[0].status = 'ACTIVE';
   }
@@ -223,15 +272,16 @@ export function deleteProfile(id) {
 }
 
 /**
- * Reset quota counter for a single profile
+ * Reset quota counter for a single project
  */
 export function resetProfileQuota(id) {
-  const profiles = getYoutubeProfiles();
-  const updated = profiles.map(p => {
-    if (p.id === id) {
+  const projects = getYoutubeProfiles();
+  const updated = projects.map(p => {
+    if (p.id === id || p.projectId === id) {
       return {
         ...p,
         usedToday: 0,
+        quotaUnitsUsed: 0,
         status: p.status === 'EXHAUSTED' ? 'STANDBY' : p.status
       };
     }
@@ -241,18 +291,21 @@ export function resetProfileQuota(id) {
   return updated;
 }
 
+export const resetProjectQuota = resetProfileQuota;
+
 /**
- * Reset quota counter for ALL configured profiles
+ * Reset all 5 projects quota counters
  */
 export function resetAllProfilesQuota() {
-  const profiles = getYoutubeProfiles();
+  const projects = getYoutubeProfiles();
   let firstFound = false;
-  const updated = profiles.map(p => {
+  const updated = projects.map(p => {
     const isFirstActive = !firstFound;
     if (isFirstActive) firstFound = true;
     return {
       ...p,
       usedToday: 0,
+      quotaUnitsUsed: 0,
       status: isFirstActive ? 'ACTIVE' : 'STANDBY'
     };
   });
@@ -260,23 +313,24 @@ export function resetAllProfilesQuota() {
   return updated;
 }
 
+export const resetAllProjectsQuota = resetAllProfilesQuota;
+
 /**
- * Rotation Audit Log management
+ * Rotation Audit Logs
  */
 export function getRotationLogs() {
   try {
     const raw = localStorage.getItem(ROTATION_LOGS_STORAGE_KEY);
     if (raw) return JSON.parse(raw);
     
-    // Seed initial demo rotation log
     const seed = [
       {
         id: `rot_seed_1`,
         timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
         readableTime: new Date(Date.now() - 3600000 * 2).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        fromProfile: '@AutoClipMain',
-        toProfile: '@AutoClipShorts',
-        reason: 'Daily Safe Cap (85/85 reached) - Seamless Failover',
+        fromProfile: 'Project 1 (Alpha)',
+        toProfile: 'Project 2 (Beta)',
+        reason: 'Daily Safe Limit (85/85) reached — Seamless Failover',
         clipTitle: 'Curiosity Loop & Shocking Twist'
       }
     ];
@@ -294,9 +348,9 @@ export function recordRotationLog({ fromProfile, toProfile, reason, clipTitle })
       id: `rot_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       timestamp: new Date().toISOString(),
       readableTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      fromProfile: fromProfile || 'Unknown Account',
-      toProfile: toProfile || 'Next Account',
-      reason: reason || 'Quota Exhausted - Intelligent Auto-Rotation',
+      fromProfile: fromProfile || 'Project 1 (Alpha)',
+      toProfile: toProfile || 'Project 2 (Beta)',
+      reason: reason || '403 Quota Exceeded — Intelligent Failover',
       clipTitle: clipTitle || 'Viral Video Clip'
     };
     const updated = [newEntry, ...logs].slice(0, 50);
@@ -316,74 +370,76 @@ export function clearRotationLogs() {
 }
 
 /**
- * Intelligent Account Rotation Engine:
- * Switches from the current profile to the next standby profile that has remaining quota.
+ * Intelligent 5-Project Rotation Engine:
+ * Switches from the current project (Project 1) to the next (Project 2...5)
+ * whenever a 403 or quota limit is reached.
  */
 export function rotateToNextProfile(reason = 'Safe daily limit reached (85/85)') {
-  const profiles = getYoutubeProfiles();
-  const currentIndex = profiles.findIndex(p => p.status === 'ACTIVE');
-  const currentProfile = currentIndex !== -1 ? profiles[currentIndex] : profiles[0];
+  const projects = getYoutubeProfiles();
+  const currentIndex = projects.findIndex(p => p.status === 'ACTIVE');
+  const currentProject = currentIndex !== -1 ? projects[currentIndex] : projects[0];
 
-  // Mark current as EXHAUSTED if it hit daily limit, or STANDBY
-  const updatedProfiles = profiles.map((p, idx) => {
+  // Mark current as EXHAUSTED if it hit daily limit or 403
+  const updatedProjects = projects.map((p, idx) => {
     if (idx === currentIndex) {
-      return { ...p, status: p.usedToday >= p.dailyLimit ? 'EXHAUSTED' : 'STANDBY' };
+      return { ...p, status: 'EXHAUSTED' };
     }
     return p;
   });
 
-  // Find next profile with remaining capacity, cycling circularly
+  // Find next project in circular rotation (Project 1 -> 2 -> 3 -> 4 -> 5)
   let nextIndex = -1;
-  const count = updatedProfiles.length;
+  const count = updatedProjects.length;
   for (let offset = 1; offset < count; offset++) {
     const candidateIdx = (currentIndex + offset) % count;
-    if (updatedProfiles[candidateIdx].usedToday < updatedProfiles[candidateIdx].dailyLimit) {
+    if (updatedProjects[candidateIdx].usedToday < updatedProjects[candidateIdx].dailyLimit) {
       nextIndex = candidateIdx;
       break;
     }
   }
 
   if (nextIndex === -1) {
-    // All configured profiles have exhausted their quotas
-    saveYoutubeProfiles(updatedProfiles);
+    saveYoutubeProfiles(updatedProjects);
     return {
       rotated: false,
       allExhausted: true,
-      currentProfile,
-      message: 'All configured YouTube profiles have exhausted their safe daily upload quotas. Reset quotas or add a new account.'
+      currentProfile: currentProject,
+      message: 'All 5 Google Cloud Console projects have exhausted their daily quota limits. Reset quotas or update project keys.'
     };
   }
 
-  // Activate next profile
-  updatedProfiles[nextIndex].status = 'ACTIVE';
-  const newActiveProfile = updatedProfiles[nextIndex];
-  saveYoutubeProfiles(updatedProfiles);
+  // Activate next project
+  updatedProjects[nextIndex].status = 'ACTIVE';
+  const newActiveProject = updatedProjects[nextIndex];
+  saveYoutubeProfiles(updatedProjects);
 
   // Record rotation event in audit log
   recordRotationLog({
-    fromProfile: currentProfile.handle,
-    toProfile: newActiveProfile.handle,
+    fromProfile: currentProject.projectName || currentProject.handle,
+    toProfile: newActiveProject.projectName || newActiveProject.handle,
     reason,
-    clipTitle: 'Queue Auto-Rotation Handshake'
+    clipTitle: 'Queue Auto-Switch Handshake'
   });
 
   return {
     rotated: true,
     allExhausted: false,
-    previousProfile: currentProfile,
-    currentProfile: newActiveProfile,
-    message: `Intelligent Rotation: Switched from ${currentProfile.handle} to ${newActiveProfile.handle} without pipeline disruption.`
+    previousProfile: currentProject,
+    currentProfile: newActiveProject,
+    message: `Intelligent Rotation: Switched from ${currentProject.projectName || currentProject.handle} ➔ ${newActiveProject.projectName || newActiveProject.handle} without pipeline disruption.`
   };
 }
 
+export const rotateToNextProject = rotateToNextProfile;
+
 /**
- * Aggregated Multi-Account Statistics
+ * Aggregated Multi-Project Statistics (5 Projects)
  */
 export function getMultiAccountStats() {
-  const profiles = getYoutubeProfiles();
-  const totalProfiles = profiles.length;
-  const totalCapacity = profiles.reduce((sum, p) => sum + (p.dailyLimit || 85), 0);
-  const totalUsedToday = profiles.reduce((sum, p) => sum + (p.usedToday || 0), 0);
+  const projects = getYoutubeProfiles();
+  const totalProfiles = projects.length;
+  const totalCapacity = projects.reduce((sum, p) => sum + (p.dailyLimit || 85), 0);
+  const totalUsedToday = projects.reduce((sum, p) => sum + (p.usedToday || 0), 0);
   const totalRemaining = Math.max(0, totalCapacity - totalUsedToday);
   const activeProfile = getActiveProfile();
   const isAllExhausted = totalRemaining <= 0;
@@ -397,13 +453,15 @@ export function getMultiAccountStats() {
     percentUsed,
     isAllExhausted,
     activeProfile,
-    profiles
+    profiles: projects
   };
 }
 
+export const getMultiProjectStats = getMultiAccountStats;
+
 /**
- * Execute YouTube upload with Intelligent Rotation Controller:
- * If active account has reached 85/85 (or triggers 403), seamlessly failover to next profile.
+ * Execute upload using the active Google Cloud project.
+ * Handles auto-failover seamlessly.
  */
 export async function executeUploadWithRotation({
   clipTitle = 'Viral Clip',
@@ -411,45 +469,44 @@ export async function executeUploadWithRotation({
   scheduleTime = null,
   forceRotate = false
 }) {
-  let activeProfile = getActiveProfile();
+  let activeProject = getActiveProfile();
   let rotationNote = null;
 
-  // Check if active profile reached limit or forceRotate requested
-  if (forceRotate || (activeProfile && activeProfile.usedToday >= activeProfile.dailyLimit)) {
+  if (forceRotate || (activeProject && activeProject.usedToday >= activeProject.dailyLimit)) {
     const rotResult = rotateToNextProfile('Daily quota limit reached (85/85) - Auto Failover');
     if (rotResult.rotated) {
-      activeProfile = rotResult.currentProfile;
+      activeProject = rotResult.currentProfile;
       rotationNote = rotResult.message;
     } else if (rotResult.allExhausted) {
       throw new Error(rotResult.message);
     }
   }
 
-  // Ensure active profile exists
-  if (!activeProfile) {
+  if (!activeProject) {
     const all = getYoutubeProfiles();
-    activeProfile = all[0];
+    activeProject = all[0];
   }
 
-  // Increment usage on this specific active profile
-  const profiles = getYoutubeProfiles();
-  const updatedProfiles = profiles.map(p => {
-    if (p.id === activeProfile.id) {
+  // Increment usage on this specific active project
+  const projects = getYoutubeProfiles();
+  const updatedProjects = projects.map(p => {
+    if (p.id === activeProject.id) {
       const newUsed = (p.usedToday || 0) + 1;
       const isExhausted = newUsed >= p.dailyLimit;
       return {
         ...p,
         usedToday: newUsed,
+        quotaUnitsUsed: (p.quotaUnitsUsed || 0) + 1600,
         status: isExhausted ? 'EXHAUSTED' : 'ACTIVE'
       };
     }
     return p;
   });
-  saveYoutubeProfiles(updatedProfiles);
+  saveYoutubeProfiles(updatedProjects);
 
-  // If this upload just filled the active profile's limit, auto-rotate now for the subsequent clip
-  if (activeProfile.usedToday + 1 >= activeProfile.dailyLimit) {
-    const followUpRotation = rotateToNextProfile('Active account limit reached, primed next account in rotation.');
+  // If this upload reached the limit, auto-rotate to prepare for the next clip
+  if (activeProject.usedToday + 1 >= activeProject.dailyLimit) {
+    const followUpRotation = rotateToNextProfile('Active project quota limit reached, primed next Google Cloud project.');
     if (followUpRotation.rotated) {
       rotationNote = (rotationNote ? `${rotationNote} | ` : '') + followUpRotation.message;
     }
@@ -467,14 +524,14 @@ export async function executeUploadWithRotation({
     privacyStatus: scheduleTime ? 'private' : privacyStatus,
     scheduledAt: scheduleTime || null,
     accountUsed: {
-      id: activeProfile.id,
-      name: activeProfile.name,
-      handle: activeProfile.handle,
-      usedToday: (activeProfile.usedToday || 0) + 1,
-      dailyLimit: activeProfile.dailyLimit
+      id: activeProject.id,
+      projectId: activeProject.projectId,
+      name: activeProject.projectName || activeProject.name,
+      handle: activeProject.handle,
+      usedToday: (activeProject.usedToday || 0) + 1,
+      dailyLimit: activeProject.dailyLimit
     },
     rotationNote,
     timestamp: new Date().toISOString()
   };
 }
-

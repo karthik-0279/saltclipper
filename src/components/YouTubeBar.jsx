@@ -3,7 +3,7 @@ import React from 'react';
 /**
  * YouTubeBar Component
  * Minimalist Black & White theme.
- * Controls YouTube channel connection, automated Shorts upload toggle, and privacy status.
+ * Controls Google Cloud Projects rotation status, automated Shorts upload toggle, and privacy status.
  * 100% Free & Open: No admin login restrictions or modal popups.
  */
 export default function YouTubeBar({ 
@@ -12,19 +12,18 @@ export default function YouTubeBar({
   onToggleAutoUpload, 
   privacy, 
   onChangePrivacy, 
-  onOpenAccountsManager,
+  onOpenProjectsManager,
   onShowToast,
   quota = null
 }) {
-  const isConnected = ytStatus?.isConnected ?? true;
-  const activeHandle = ytStatus?.activeProfile?.handle || quota?.activeProfileHandle || '@AutoClipMain';
-  const totalPoolRemaining = quota?.totalPoolRemaining ?? quota?.remainingUploads ?? 85;
-  const totalPoolCapacity = quota?.totalPoolCapacity ?? quota?.dailyLimit ?? 85;
-  const profilesCount = quota?.totalProfilesCount ?? 5;
+  const activeHandle = ytStatus?.activeProfile?.projectName || ytStatus?.activeProfile?.handle || quota?.activeProfileHandle || 'Project 1 (Alpha)';
+  const totalPoolRemaining = quota?.totalPoolRemaining ?? quota?.remainingUploads ?? 425;
+  const totalPoolCapacity = quota?.totalPoolCapacity ?? quota?.dailyLimit ?? 425;
+  const projectsCount = quota?.totalProfilesCount ?? 5;
 
-  const scrollToAccounts = () => {
-    if (onOpenAccountsManager) onOpenAccountsManager();
-    const el = document.getElementById('accounts-section');
+  const scrollToProjects = () => {
+    if (onOpenProjectsManager) onOpenProjectsManager();
+    const el = document.getElementById('projects-section') || document.getElementById('accounts-section');
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -36,11 +35,11 @@ export default function YouTubeBar({
             <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
           </svg>
           <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#FFFFFF' }}>
-            YouTube Shorts Automation
+            Google Cloud Projects Pipeline
           </span>
           <button
             type="button"
-            onClick={scrollToAccounts}
+            onClick={scrollToProjects}
             style={{ 
               fontSize: '0.75rem', 
               background: 'var(--bg-subtle)', 
@@ -54,7 +53,7 @@ export default function YouTubeBar({
               alignItems: 'center',
               gap: '4px'
             }}
-            title="Click to view & manage rotation accounts"
+            title="Click to view & manage 5 Google Cloud Console projects"
           >
             <span style={{ color: '#FFFFFF' }}>● Active:</span>
             <span>{activeHandle}</span>
@@ -62,7 +61,7 @@ export default function YouTubeBar({
           {quota && (
             <button 
               type="button"
-              onClick={scrollToAccounts}
+              onClick={scrollToProjects}
               style={{ 
                 fontSize: '0.75rem', 
                 background: quota.isCircuitBreakerOpen ? '#222222' : 'var(--bg-subtle)', 
@@ -73,21 +72,21 @@ export default function YouTubeBar({
                 fontWeight: 800,
                 cursor: 'pointer'
               }}
-              title="Click to manage multi-account pool"
+              title="Click to manage multi-project pool"
             >
               {quota.isCircuitBreakerOpen 
                 ? `🛑 Quotas Full (${totalPoolRemaining}/${totalPoolCapacity})` 
-                : `⚡ Pool: ${totalPoolRemaining}/${totalPoolCapacity} Left (${profilesCount} Accounts)`}
+                : `⚡ 5-Project Pool: ${totalPoolRemaining}/${totalPoolCapacity} Left`}
             </button>
           )}
         </div>
       </div>
 
       <div className="yt-bar-right">
-        {/* Auto-Upload Toggle - 100% Unrestricted */}
+        {/* Instant Auto-Upload Toggle */}
         <label 
           className="yt-toggle-label" 
-          title="Automatically upload rendered clips directly to YouTube Shorts with intelligent account rotation"
+          title="Automatically upload rendered clips directly to YouTube Shorts across rotated Google Cloud projects without manual clicks"
           style={{ cursor: 'pointer' }}
         >
           <input 
@@ -97,7 +96,7 @@ export default function YouTubeBar({
             style={{ accentColor: '#FFFFFF' }}
           />
           <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#FFFFFF' }}>
-            Auto-Upload Shorts: <strong style={{ color: autoUpload ? '#FFFFFF' : 'var(--text-dim)' }}>{autoUpload ? 'ON' : 'OFF'}</strong>
+            Instant Auto-Upload: <strong style={{ color: autoUpload ? '#FFFFFF' : 'var(--text-dim)' }}>{autoUpload ? 'ACTIVE' : 'OFF'}</strong>
           </span>
         </label>
 
@@ -113,17 +112,17 @@ export default function YouTubeBar({
             color: '#FFFFFF'
           }}
         >
-          <option value="public">🌐 Public (Instant Reach)</option>
+          <option value="public">🌐 Public (Instant Viral Reach)</option>
           <option value="unlisted">🔗 Unlisted</option>
           <option value="private">🔒 Private</option>
         </select>
 
-        {/* Manage Accounts Button */}
+        {/* Manage Projects Button */}
         <button 
           type="button"
           className="btn-yt-connect"
-          onClick={scrollToAccounts}
-          title="Scroll to Multi-Account YouTube Manager"
+          onClick={scrollToProjects}
+          title="Scroll to Google Cloud Projects Manager"
           style={{
             background: '#FFFFFF',
             border: 'none',
@@ -133,7 +132,7 @@ export default function YouTubeBar({
             cursor: 'pointer'
           }}
         >
-          <span>👥 Manage Accounts</span>
+          <span>☁ Manage 5 Projects</span>
         </button>
       </div>
     </section>

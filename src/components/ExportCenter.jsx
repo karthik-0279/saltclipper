@@ -46,7 +46,7 @@ export default function ExportCenter({
               <span>9:16 Full-Bleed Vertical</span>
             </div>
             <div className="export-desc">
-              Reframed for YouTube Shorts, Instagram Reels, and TikTok.
+              Reframed for vertical 9:16 high-retention video formats.
             </div>
           </div>
 
