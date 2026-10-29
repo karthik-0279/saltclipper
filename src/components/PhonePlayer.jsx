@@ -45,8 +45,8 @@ export default function PhonePlayer({
         ) : (
           <div className="player-empty-state">
             <div style={{ fontSize: '3rem', marginBottom: '0.75rem', color: 'var(--sage)' }}>📱</div>
-            <p style={{ fontWeight: 800, color: '#F5F2EB', fontSize: '1.05rem' }}>9:16 Mobile Viewport</p>
-            <p style={{ fontSize: '0.82rem', marginTop: '6px', color: '#8A9A86' }}>Paste a link above to preview viral clips</p>
+            <p style={{ fontWeight: 800, color: '#FFFFFF', fontSize: '1.05rem' }}>9:16 Mobile Viewport</p>
+            <p style={{ fontSize: '0.82rem', marginTop: '6px', color: '#8DA4D0' }}>Paste a link above to preview viral clips</p>
           </div>
         )}
       </div>

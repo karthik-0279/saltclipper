@@ -123,7 +123,7 @@ export default function ExportCenter({
           </div>
 
           <div style={{ height: '8px', background: 'var(--bg-subtle)', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.75rem' }}>
-            <div style={{ width: `${batchStatus.progress || 0}%`, height: '100%', background: 'linear-gradient(90deg, #581827, #8A9A86)', transition: 'width 0.4s ease' }} />
+            <div style={{ width: `${batchStatus.progress || 0}%`, height: '100%', background: 'linear-gradient(90deg, #DE1110, #255DCE)', transition: 'width 0.4s ease' }} />
           </div>
 
           {/* List of uploaded parts with links */}
