@@ -13,18 +13,21 @@ import {
   authorizeAllProjectsWithToken,
   authorizeSingleProject,
   isAnyProjectAuthorized,
-  disconnectAllProjects
+  disconnectAllProjects,
+  DAILY_QUOTA_LIMIT_UNITS,
+  UPLOAD_COST_UNITS
 } from '../services/profileManager';
 
 /**
  * GoogleProjectsManager Component
  * 
- * Production Requirements:
- * - Single "Sign in with Google" action automatically links and authorizes all 5 projects.
- * - Removed all manual token pasting fields.
- * - Clean "Connect Google Account" button per project and master connect card.
- * - Automatically distributes and persists OAuth tokens across the 5-project rotation setup in localStorage.
- * - 100% Minimalist Black & White single-page layout (zero modals or popups).
+ * Minimalist Black & White Single-Page Architecture:
+ * - Zero Popups, Zero Modals.
+ * - Zero Clutter: Removed Project ID, Display Name, and Quota Limit fields.
+ * - Keeps ONLY: OAuth 2.0 Client ID, OAuth 2.0 Client Secret, and "Connect Google Account" button.
+ * - Smart Quota Tracking (10,000 Units Limit): 1 video upload = ~1,600 units (~6 uploads/project).
+ * - Automatic 403 / 400 error rotation across 5 Google Cloud Projects.
+ * - Dynamic window.location.origin detection to prevent origin_mismatch errors.
  */
 export default function GoogleProjectsManager({ onShowToast }) {
   const [projects, setProjects] = useState([]);
@@ -34,16 +37,10 @@ export default function GoogleProjectsManager({ onShowToast }) {
   const [editingProjectId, setEditingProjectId] = useState(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-  // Form edit state for project metadata (No manual token pasting!)
+  // Form edit state for credentials ONLY (Client ID + Client Secret)
   const [editFormData, setEditFormData] = useState({
-    projectId: '',
-    projectName: '',
-    handle: '',
-    email: '',
     clientId: '',
-    clientSecret: '',
-    apiKey: '',
-    dailyLimit: 85
+    clientSecret: ''
   });
 
   const refreshState = useCallback(() => {
@@ -60,14 +57,12 @@ export default function GoogleProjectsManager({ onShowToast }) {
   useEffect(() => {
     refreshState();
 
-    // Listen for OAuth completion message from Google popup window
     const handleOAuthMessage = (e) => {
       if (e.data?.type === 'YOUTUBE_CONNECTED') {
         const receivedToken = e.data?.tokens?.access_token || e.data?.tokens?.accessToken || e.data?.accessToken;
         if (receivedToken) {
           authorizeAllProjectsWithToken(receivedToken);
         } else {
-          // If token wasn't directly in message, check server endpoint
           fetch('/api/auth/youtube/tokens')
             .then(res => res.json())
             .then(data => {
@@ -89,12 +84,14 @@ export default function GoogleProjectsManager({ onShowToast }) {
     return () => window.removeEventListener('message', handleOAuthMessage);
   }, [refreshState, onShowToast]);
 
-  // Master Google Sign-in Handler
+  // Master Google Sign-in Handler with dynamic origin & redirect URI
   const handleMasterGoogleSignIn = (targetProjectId = null) => {
     setIsAuthenticating(true);
 
-    // 1. Try Google Identity Services (GIS) Token Client if available in window
-    const activeClientId = projects[0]?.clientId || '';
+    const activeProject = targetProjectId ? projects.find(p => p.id === targetProjectId) : projects[0];
+    const activeClientId = activeProject?.clientId || projects[0]?.clientId || '';
+
+    // 1. GIS Token Client fallback if available
     if (window.google?.accounts?.oauth2 && activeClientId && !activeClientId.includes('PASTE_YOUR')) {
       try {
         const tokenClient = window.google.accounts.oauth2.initTokenClient({
@@ -120,7 +117,7 @@ export default function GoogleProjectsManager({ onShowToast }) {
         tokenClient.requestAccessToken();
         return;
       } catch (err) {
-        console.warn('Google Identity Services client error, falling back to popup:', err.message);
+        console.warn('GIS error, using popup:', err.message);
       }
     }
 
@@ -130,7 +127,7 @@ export default function GoogleProjectsManager({ onShowToast }) {
     const left = window.screen.width / 2 - width / 2;
     const top = window.screen.height / 2 - height / 2;
 
-    const origin = window.location.origin;
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
     const redirectUri = `${origin}/api/auth/youtube/callback`;
     const authUrl = `/api/auth/google?origin=${encodeURIComponent(origin)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
 
@@ -179,18 +176,12 @@ export default function GoogleProjectsManager({ onShowToast }) {
     }
   };
 
-  // Open inline edit form for project metadata
+  // Open inline edit for OAuth credentials ONLY (Client ID + Client Secret)
   const handleStartEdit = (proj) => {
     setEditingProjectId(proj.id);
     setEditFormData({
-      projectId: proj.projectId || '',
-      projectName: proj.projectName || proj.name || '',
-      handle: proj.handle || '',
-      email: proj.email || '',
       clientId: proj.clientId || '',
-      clientSecret: proj.clientSecret || '',
-      apiKey: proj.apiKey || '',
-      dailyLimit: proj.dailyLimit || 85
+      clientSecret: proj.clientSecret || ''
     });
   };
 
@@ -198,31 +189,31 @@ export default function GoogleProjectsManager({ onShowToast }) {
     setEditingProjectId(null);
   };
 
-  // Save project metadata to localStorage (NO manual token pasting!)
+  // Save OAuth credentials to localStorage
   const handleSaveCredentials = (projectId) => {
     updateProjectCredentials(projectId, editFormData);
     setEditingProjectId(null);
     refreshState();
     if (onShowToast) {
-      onShowToast(`✅ Details for ${editFormData.projectName || projectId} saved to localStorage!`);
+      onShowToast(`✅ OAuth Credentials saved for Project!`);
     }
   };
 
   // Test 403 Auto-Switch Trigger
   const handleTestFailover = () => {
-    const res = rotateToNextProfile('Simulated 403 Quota Exceeded error — Zero Limit Waste Triggered');
+    const res = rotateToNextProfile('Simulated 403 Quota Exceeded error — Smart Auto-Switch Triggered');
     refreshState();
     if (onShowToast) {
       onShowToast(res.message);
     }
   };
 
-  // Reset Quotas
+  // Reset Quotas to 0 units
   const handleResetOne = (projectId, projectName) => {
     resetProfileQuota(projectId);
     refreshState();
     if (onShowToast) {
-      onShowToast(`Reset daily quota counter for ${projectName}.`);
+      onShowToast(`Reset daily quota units to 0 for ${projectName}.`);
     }
   };
 
@@ -230,7 +221,7 @@ export default function GoogleProjectsManager({ onShowToast }) {
     resetAllProfilesQuota();
     refreshState();
     if (onShowToast) {
-      onShowToast('All 5 Google Cloud Projects daily quotas reset to 0!');
+      onShowToast('All 5 Google Cloud Projects daily quotas reset to 0 Units!');
     }
   };
 
@@ -266,10 +257,10 @@ export default function GoogleProjectsManager({ onShowToast }) {
           </div>
           <div>
             <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: '#FFFFFF', letterSpacing: '-0.02em' }}>
-              Google Cloud Console Projects Rotation (5 Projects)
+              Google Cloud Console Projects Rotation (5 Projects - 10,000 Units Each)
             </h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '3px 0 0 0' }}>
-              1-Click Google OAuth &bull; Automatic 403 Failover &bull; Continuous 20+ Clips Pipeline
+              YouTube Data API v3 (~1,600 units/upload) &bull; Auto 403/400 Failover &bull; Continuous 20+ Clips Pipeline
             </p>
           </div>
         </div>
@@ -288,7 +279,7 @@ export default function GoogleProjectsManager({ onShowToast }) {
               fontWeight: 800,
               cursor: 'pointer'
             }}
-            title="Simulate a 403 Quota Exceeded error on current project to verify instant rotation to the next project"
+            title="Simulate a 403 Quota Exceeded error on current project to verify instant rotation"
           >
             ⚡ Test 403 Auto-Switch
           </button>
@@ -306,7 +297,7 @@ export default function GoogleProjectsManager({ onShowToast }) {
               cursor: 'pointer'
             }}
           >
-            🔄 Reset All 5 Quotas
+            🔄 Reset All 5 Quotas (0 Units)
           </button>
         </div>
       </div>
@@ -342,7 +333,7 @@ export default function GoogleProjectsManager({ onShowToast }) {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#FFFFFF' }}>
-                {isAuthorized ? 'Google Account Connected & Authorized' : 'Sign in with Google'}
+                {isAuthorized ? 'Google Account Connected & Authorized' : 'Connect Google Account'}
               </span>
               <span style={{
                 fontSize: '0.68rem',
@@ -358,7 +349,7 @@ export default function GoogleProjectsManager({ onShowToast }) {
             <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: isAuthorized ? '#94a3b8' : 'var(--text-muted)' }}>
               {isAuthorized
                 ? 'Your Google OAuth credentials are automatically distributed across all 5 rotation projects in localStorage.'
-                : 'Sign in once with Google to authorize the active YouTube upload pipeline across all 5 projects seamlessly.'}
+                : 'Click "Connect Google Account" once to link and authorize the YouTube upload queue across all 5 projects.'}
             </p>
             <div style={{ marginTop: '6px', fontSize: '0.72rem', color: '#888888', display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
               <span>Origin: <code style={{ color: '#FFFFFF', background: '#222222', padding: '1px 5px', borderRadius: '3px', border: '1px solid #333333' }}>{typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173'}</code></span>
@@ -442,14 +433,14 @@ export default function GoogleProjectsManager({ onShowToast }) {
                 }}
               >
                 <span>🚀</span>
-                <span>{isAuthenticating ? 'Connecting...' : 'Sign in with Google'}</span>
+                <span>{isAuthenticating ? 'Connecting...' : 'Connect Google Account'}</span>
               </button>
             </>
           )}
         </div>
       </div>
 
-      {/* Aggregate Multi-Project Capacity Metrics */}
+      {/* Aggregate Multi-Project 10,000 Units Capacity Metrics */}
       {stats && (
         <div style={{
           display: 'grid',
@@ -475,36 +466,37 @@ export default function GoogleProjectsManager({ onShowToast }) {
               Total Multi-Project Capacity
             </div>
             <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#FFFFFF', marginTop: '3px' }}>
-              {stats.totalCapacity} <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>Shorts/day</span>
+              50,000 <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>Units (~30 Shorts)</span>
             </div>
           </div>
           <div>
             <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
-              Uploaded Today
+              Quota Units Consumed
             </div>
             <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#FFFFFF', marginTop: '3px' }}>
-              {stats.totalUsedToday}
+              {stats.totalQuotaUsedUnits || 0} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Units ({stats.totalUsedToday || 0} uploads)</span>
             </div>
           </div>
           <div>
             <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
-              Pool Remaining
+              Quota Units Remaining
             </div>
             <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#FFFFFF', marginTop: '3px' }}>
-              {stats.totalRemaining}
+              {stats.totalQuotaRemainingUnits || 50000} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Units (~{stats.totalRemaining || 30} uploads)</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* The 5 Google Cloud Projects List */}
+      {/* The 5 Google Cloud Projects List (Zero Clutter: Client ID + Secret + Connect ONLY) */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {projects.map((proj, idx) => {
           const isActive = proj.status === 'ACTIVE';
-          const isExhausted = proj.status === 'EXHAUSTED' || (proj.usedToday >= proj.dailyLimit);
-          const percent = Math.min(100, Math.round(((proj.usedToday || 0) / (proj.dailyLimit || 85)) * 100));
+          const isExhausted = proj.status === 'EXHAUSTED' || (proj.quotaUnitsUsed >= DAILY_QUOTA_LIMIT_UNITS);
+          const percent = Math.min(100, Math.round(((proj.quotaUnitsUsed || 0) / DAILY_QUOTA_LIMIT_UNITS) * 100));
           const isEditing = editingProjectId === proj.id;
           const hasToken = Boolean(proj.accessToken && proj.accessToken.trim());
+          const uploadsLeft = Math.max(0, Math.floor((DAILY_QUOTA_LIMIT_UNITS - (proj.quotaUnitsUsed || 0)) / UPLOAD_COST_UNITS));
 
           return (
             <div
@@ -544,7 +536,7 @@ export default function GoogleProjectsManager({ onShowToast }) {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontWeight: 800, fontSize: '0.98rem', color: '#FFFFFF' }}>
-                        {proj.projectName || `Google Cloud Project ${idx + 1}`}
+                        Google Cloud Project #{idx + 1}
                       </span>
                       <span style={{
                         fontSize: '0.68rem',
@@ -555,7 +547,7 @@ export default function GoogleProjectsManager({ onShowToast }) {
                         color: isActive ? '#000000' : (isExhausted ? '#AAAAAA' : 'var(--text-muted)'),
                         border: `1px solid ${isActive ? '#FFFFFF' : 'var(--card-border)'}`
                       }}>
-                        {isActive ? 'ACTIVE UPLOADER' : (isExhausted ? 'QUOTA EXHAUSTED' : 'STANDBY (IN ROTATION)')}
+                        {isActive ? 'ACTIVE UPLOADER' : (isExhausted ? 'QUOTA EXHAUSTED (10,000 UNITS)' : 'STANDBY (IN ROTATION)')}
                       </span>
                       <span style={{
                         fontSize: '0.66rem',
@@ -569,41 +561,36 @@ export default function GoogleProjectsManager({ onShowToast }) {
                         {hasToken ? '● Authorized via Google' : '○ Not Linked'}
                       </span>
                     </div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      <span style={{ color: '#FFFFFF', fontFamily: 'monospace' }}>{proj.projectId || `proj-${idx + 1}`}</span> &bull; Channel: <span style={{ color: '#FFFFFF' }}>{proj.handle}</span>
-                    </div>
                   </div>
                 </div>
 
                 {/* Quick Action Buttons */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {!hasToken && (
-                    <button
-                      type="button"
-                      onClick={() => handleMasterGoogleSignIn(proj.id)}
-                      style={{
-                        background: '#FFFFFF',
-                        border: 'none',
-                        color: '#000000',
-                        padding: '0.4rem 0.85rem',
-                        borderRadius: 'var(--radius-sm)',
-                        fontWeight: 800,
-                        fontSize: '0.75rem',
-                        cursor: 'pointer'
-                      }}
-                      title="Connect Google Account for this specific project"
-                    >
-                      🔗 Connect Google Account
-                    </button>
-                  )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleMasterGoogleSignIn(proj.id)}
+                    style={{
+                      background: hasToken ? 'transparent' : '#FFFFFF',
+                      border: hasToken ? '1px solid var(--card-border)' : 'none',
+                      color: hasToken ? '#FFFFFF' : '#000000',
+                      padding: '0.4rem 0.85rem',
+                      borderRadius: 'var(--radius-sm)',
+                      fontWeight: 800,
+                      fontSize: '0.75rem',
+                      cursor: 'pointer'
+                    }}
+                    title="Connect Google Account for this specific project"
+                  >
+                    🔗 Connect Google Account
+                  </button>
                   {!isActive && (
                     <button
                       type="button"
-                      onClick={() => handleSelectActive(proj.id, proj.projectName)}
+                      onClick={() => handleSelectActive(proj.id, `Google Cloud Project #${idx + 1}`)}
                       style={{
-                        background: hasToken ? '#FFFFFF' : '#222222',
-                        border: hasToken ? 'none' : '1px solid var(--card-border)',
-                        color: hasToken ? '#000000' : '#FFFFFF',
+                        background: '#222222',
+                        border: '1px solid var(--card-border)',
+                        color: '#FFFFFF',
                         padding: '0.4rem 0.85rem',
                         borderRadius: 'var(--radius-sm)',
                         fontWeight: 800,
@@ -628,11 +615,11 @@ export default function GoogleProjectsManager({ onShowToast }) {
                       cursor: 'pointer'
                     }}
                   >
-                    {isEditing ? 'Close' : 'Edit Project Details'}
+                    {isEditing ? 'Close' : 'Configure Credentials'}
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleResetOne(proj.id, proj.projectName)}
+                    onClick={() => handleResetOne(proj.id, `Google Cloud Project #${idx + 1}`)}
                     style={{
                       background: 'transparent',
                       border: '1px solid var(--card-border)',
@@ -642,14 +629,14 @@ export default function GoogleProjectsManager({ onShowToast }) {
                       fontSize: '0.75rem',
                       cursor: 'pointer'
                     }}
-                    title="Reset daily quota usage"
+                    title="Reset quota usage to 0 units"
                   >
-                    Reset
+                    Reset (0 Units)
                   </button>
                 </div>
               </div>
 
-              {/* Quota Usage Meter */}
+              {/* 10,000 Quota Units Meter Bar */}
               <div style={{ marginBottom: isEditing ? '1.25rem' : '0' }}>
                 <div style={{
                   display: 'flex',
@@ -658,22 +645,22 @@ export default function GoogleProjectsManager({ onShowToast }) {
                   marginBottom: '4px',
                   color: 'var(--text-muted)'
                 }}>
-                  <span>Project Quota Consumption</span>
+                  <span>Daily Quota Consumption (10,000 Units Limit)</span>
                   <span style={{ color: '#FFFFFF', fontWeight: 800 }}>
-                    {proj.usedToday || 0} / {proj.dailyLimit || 85} Shorts ({percent}%)
+                    {proj.quotaUnitsUsed || 0} / 10,000 Units ({percent}%) &bull; ~{uploadsLeft} Uploads Left
                   </span>
                 </div>
                 <div style={{ height: '5px', background: '#222222', borderRadius: '3px', overflow: 'hidden' }}>
                   <div style={{
                     width: `${percent}%`,
                     height: '100%',
-                    background: '#FFFFFF',
+                    background: percent >= 100 ? '#ef4444' : '#FFFFFF',
                     transition: 'width 0.3s ease'
                   }} />
                 </div>
               </div>
 
-              {/* Inline Project Details Editor (NO manual token pasting!) */}
+              {/* Clean Minimalist Credentials Editor (ONLY Client ID & Client Secret) */}
               {isEditing && (
                 <div style={{
                   marginTop: '1.25rem',
@@ -685,59 +672,15 @@ export default function GoogleProjectsManager({ onShowToast }) {
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '8px' }}>
                     <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#FFFFFF' }}>
-                      Edit Details for Project #{idx + 1}:
+                      OAuth Credentials for Project #{idx + 1}:
                     </div>
                     <div style={{ fontSize: '0.75rem', color: '#34d399', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span>🔒</span>
-                      <span>OAuth tokens are handled automatically via "Sign in with Google"</span>
+                      <span>Access tokens are handled automatically via "Connect Google Account"</span>
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', marginBottom: '1rem' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '3px' }}>
-                        Google Cloud Project ID
-                      </label>
-                      <input
-                        type="text"
-                        value={editFormData.projectId}
-                        onChange={(e) => setEditFormData({ ...editFormData, projectId: e.target.value })}
-                        placeholder="e.g. saltclipper-prod-01"
-                        style={{
-                          width: '100%',
-                          padding: '0.55rem',
-                          background: 'var(--bg-subtle)',
-                          border: '1px solid var(--card-border)',
-                          borderRadius: 'var(--radius-sm)',
-                          color: '#FFFFFF',
-                          fontSize: '0.82rem',
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '3px' }}>
-                        Project Display Name
-                      </label>
-                      <input
-                        type="text"
-                        value={editFormData.projectName}
-                        onChange={(e) => setEditFormData({ ...editFormData, projectName: e.target.value })}
-                        placeholder="Google Cloud Project Name"
-                        style={{
-                          width: '100%',
-                          padding: '0.55rem',
-                          background: 'var(--bg-subtle)',
-                          border: '1px solid var(--card-border)',
-                          borderRadius: 'var(--radius-sm)',
-                          color: '#FFFFFF',
-                          fontSize: '0.82rem',
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                    </div>
-
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.85rem', marginBottom: '1rem' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '3px' }}>
                         OAuth 2.0 Client ID
@@ -746,7 +689,7 @@ export default function GoogleProjectsManager({ onShowToast }) {
                         type="text"
                         value={editFormData.clientId}
                         onChange={(e) => setEditFormData({ ...editFormData, clientId: e.target.value })}
-                        placeholder="xxxx.apps.googleusercontent.com"
+                        placeholder="e.g. xxxx-yyyy.apps.googleusercontent.com"
                         style={{
                           width: '100%',
                           padding: '0.55rem',
@@ -781,54 +724,9 @@ export default function GoogleProjectsManager({ onShowToast }) {
                         }}
                       />
                     </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '3px' }}>
-                        Linked Channel Handle
-                      </label>
-                      <input
-                        type="text"
-                        value={editFormData.handle}
-                        onChange={(e) => setEditFormData({ ...editFormData, handle: e.target.value })}
-                        placeholder="@ChannelHandle"
-                        style={{
-                          width: '100%',
-                          padding: '0.55rem',
-                          background: 'var(--bg-subtle)',
-                          border: '1px solid var(--card-border)',
-                          borderRadius: 'var(--radius-sm)',
-                          color: '#FFFFFF',
-                          fontSize: '0.82rem',
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '3px' }}>
-                        Daily Quota Limit (Default: 85)
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="500"
-                        value={editFormData.dailyLimit}
-                        onChange={(e) => setEditFormData({ ...editFormData, dailyLimit: e.target.value })}
-                        style={{
-                          width: '100%',
-                          padding: '0.55rem',
-                          background: 'var(--bg-subtle)',
-                          border: '1px solid var(--card-border)',
-                          borderRadius: 'var(--radius-sm)',
-                          color: '#FFFFFF',
-                          fontSize: '0.82rem',
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                    </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
                     <button
                       type="button"
                       onClick={() => handleMasterGoogleSignIn(proj.id)}
@@ -843,7 +741,7 @@ export default function GoogleProjectsManager({ onShowToast }) {
                         cursor: 'pointer'
                       }}
                     >
-                      🔗 Connect Google Account for this Project
+                      🔗 Connect Google Account
                     </button>
                     <button
                       type="button"
@@ -874,7 +772,7 @@ export default function GoogleProjectsManager({ onShowToast }) {
                         cursor: 'pointer'
                       }}
                     >
-                      ✓ Save Project Details
+                      ✓ Save Credentials
                     </button>
                   </div>
                 </div>
@@ -889,10 +787,10 @@ export default function GoogleProjectsManager({ onShowToast }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
           <div>
             <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
-              Live 403 Auto-Switch Audit Trail ({rotationLogs.length})
+              Live 403 / 10,000 Units Auto-Switch Audit Trail ({rotationLogs.length})
             </h3>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-              Real-time records of intelligent failover when 403 errors or daily caps occur
+              Real-time audit of seamless failovers across Google Cloud Projects
             </p>
           </div>
           {rotationLogs.length > 0 && (
@@ -923,7 +821,7 @@ export default function GoogleProjectsManager({ onShowToast }) {
             background: 'var(--bg-subtle)',
             borderRadius: 'var(--radius-sm)'
           }}>
-            No quota failover events logged yet. If Project 1 hits 403, it will automatically switch to Project 2 and record here.
+            No quota failover events logged yet. When a project hits 10,000 units or 403, it will automatically switch to the next project and record here.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

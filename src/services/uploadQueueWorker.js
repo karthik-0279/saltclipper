@@ -2,13 +2,16 @@
  * AutoClip AI - Intelligent Multi-Account Queue Worker & Batch Controller
  * 
  * Production Requirements:
- * 1. Supports continuous batch processing for 20+ clips (25, 30, 50+ clips).
- * 2. Intelligent Quota Fallback (Zero Limit Waste):
- *    - Continuously inspects active account quota before each clip.
- *    - If an account hits its daily limit OR triggers a 403 Quota Exceeded error,
- *      it immediately marks that account as EXHAUSTED, rotates to the next available
- *      connected profile in localStorage, and re-attempts the exact same clip instantly.
- * 3. Event-driven architecture with progress, rotation, and completion listeners.
+ * 1. Strict Sequential Clip-by-Clip Upload Queue:
+ *    - Process uploads strictly one by one (NO parallel or bulk uploads).
+ *    - Next clip upload is initiated ONLY after the previous clip receives a confirmed 200 OK from YouTube Data API v3.
+ *    - Enforces a mandatory 3-second buffer countdown delay between uploads to avoid rate limit spikes.
+ * 2. Smart Quota Tracking & Auto-Switching (10,000 Units Limit):
+ *    - Tracks quota consumption per project (1 video = 1,600 units, limit = 10,000 units).
+ *    - Proactively or on 403/400 errors ("exceeded the number of videos", quotaExceeded), automatically rotates
+ *      to the next linked Google Cloud project/account without interrupting the batch.
+ * 3. Token Safety & Graceful Expiration:
+ *    - Proactively checks token validity and expiration before queue launch.
  */
 
 import {
@@ -18,7 +21,10 @@ import {
   getMultiAccountStats,
   executeUploadWithRotation,
   saveYoutubeProfiles,
-  recordRotationLog
+  recordRotationLog,
+  checkTokenValidity,
+  DAILY_QUOTA_LIMIT_UNITS,
+  UPLOAD_COST_UNITS
 } from './profileManager';
 
 class UploadQueueWorker {
@@ -35,7 +41,7 @@ class UploadQueueWorker {
       accountRotate: [],
       complete: []
     };
-    this.delayMs = 3000; // Strict 3-second buffer between uploads to prevent rate limit spikes
+    this.delayMs = 3000; // Strict 3-second buffer between uploads
     this.uploadedClips = [];
     this.failedClips = [];
   }
@@ -76,6 +82,16 @@ class UploadQueueWorker {
       throw new Error('No clips provided for upload queue.');
     }
 
+    // Token Safety: Check validity and expiration before launching queue
+    const activeAccount = getActiveProfile();
+    const tokenCheck = checkTokenValidity(activeAccount);
+    if (!tokenCheck.isValid) {
+      const authErr = new Error(tokenCheck.message);
+      authErr.isAuthMissing = true;
+      authErr.isExpired = tokenCheck.isExpired;
+      throw authErr;
+    }
+
     this.queue = clips.map((clip, index) => ({
       index,
       part: index + 1,
@@ -99,27 +115,25 @@ class UploadQueueWorker {
     this.uploadedClips = [];
     this.failedClips = [];
 
-    const activeAccount = getActiveProfile();
-
     this.emit('progress', {
       batchId: this.activeBatchId,
       status: 'PROCESSING',
       currentPart: 0,
       totalParts: this.queue.length,
       progress: 2,
-      step: `Initializing intelligent multi-account queue for ${this.queue.length} clips via ${activeAccount?.handle || 'Active Account'}...`,
-      activeAccount: activeAccount?.handle,
+      step: `Initializing sequential upload queue for ${this.queue.length} clips via ${activeAccount?.projectName || 'Active Project'}...`,
+      activeAccount: activeAccount?.projectName,
       uploadedClips: [],
       failedClips: []
     });
 
-    // Begin asynchronous queue execution
+    // Begin strict sequential execution
     this.processNext();
     return this.activeBatchId;
   }
 
   /**
-   * Process next item in the queue sequentially
+   * Process next item in the queue strictly one by one (sequential)
    */
   async processNext() {
     if (!this.isRunning || this.isPaused) return;
@@ -133,21 +147,24 @@ class UploadQueueWorker {
     const totalParts = this.queue.length;
     const partNum = this.currentIndex + 1;
 
-    // 1. Quota Pre-Check on Current Active Profile
+    // 1. Quota Pre-Check on Current Active Profile (10,000 Units Limit)
     let activeProfile = getActiveProfile();
-    if (!activeProfile || activeProfile.usedToday >= activeProfile.dailyLimit) {
-      const rot = rotateToNextProfile('Active account quota reached cap — auto-rotating to preserve limits');
+    const isExhausted = !activeProfile || 
+      (activeProfile.quotaUnitsUsed + UPLOAD_COST_UNITS > DAILY_QUOTA_LIMIT_UNITS) ||
+      (activeProfile.usedToday >= activeProfile.dailyLimit);
+
+    if (isExhausted) {
+      const rot = rotateToNextProfile('10,000 Units daily quota reached — auto-rotating to preserve limits');
       if (rot.rotated) {
         activeProfile = rot.currentProfile;
         this.emit('accountRotate', {
-          from: rot.previousProfile?.handle,
-          to: rot.currentProfile?.handle,
+          from: rot.previousProfile?.projectName,
+          to: rot.currentProfile?.projectName,
           reason: rot.message,
           clipTitle: item.title
         });
       } else if (rot.allExhausted) {
-        // All accounts exhausted
-        this.failBatch('All connected YouTube accounts have reached their daily upload limits. Please add another account or reset daily counters.');
+        this.failBatch('All 5 connected Google Cloud Projects have reached their 10,000 units quota limit.');
         return;
       }
     }
@@ -160,8 +177,8 @@ class UploadQueueWorker {
       currentPart: partNum,
       totalParts,
       progress: Math.max(5, baseProgress + 3),
-      step: `[Part ${partNum}/${totalParts}] Uploading via ${activeProfile.handle} (${activeProfile.usedToday}/${activeProfile.dailyLimit} used)...`,
-      activeAccount: activeProfile.handle,
+      step: `[Part ${partNum}/${totalParts}] Uploading via ${activeProfile.projectName} (${activeProfile.quotaUnitsUsed || 0}/10,000 Units Used)...`,
+      activeAccount: activeProfile.projectName,
       uploadedClips: [...this.uploadedClips],
       failedClips: [...this.failedClips]
     });
@@ -170,14 +187,18 @@ class UploadQueueWorker {
       item.attempts++;
       item.status = 'UPLOADING';
 
-      // Execute real YouTube Data API v3 multipart upload through rotation manager
+      // 2. Strict Sequential Execution: Await confirmed 200 OK from YouTube API
       const uploadRes = await executeUploadWithRotation({
         clipTitle: item.title,
         videoBlob: item.videoBlob || null,
         privacyStatus: item.privacyStatus
       });
 
-      // Upload succeeded!
+      if (!uploadRes || !uploadRes.videoId) {
+        throw new Error('Upload completed without receiving a verified YouTube video ID.');
+      }
+
+      // Upload confirmed 200 OK!
       item.status = 'COMPLETED';
       item.result = uploadRes;
 
@@ -187,7 +208,7 @@ class UploadQueueWorker {
         title: item.title,
         shortsUrl: uploadRes.shortsUrl,
         videoId: uploadRes.videoId,
-        accountUsed: uploadRes.accountUsed?.handle || activeProfile.handle,
+        accountUsed: uploadRes.accountUsed?.projectName || activeProfile.projectName,
         rotationNote: uploadRes.rotationNote,
         timestamp: new Date().toLocaleTimeString()
       };
@@ -202,8 +223,8 @@ class UploadQueueWorker {
         currentPart: partNum,
         totalParts,
         progress: doneProgress,
-        step: `[Part ${partNum}/${totalParts}] ✅ Published to YouTube Shorts via ${uploadRes.accountUsed?.handle || activeProfile.handle}!`,
-        activeAccount: uploadRes.accountUsed?.handle || activeProfile.handle,
+        step: `[Part ${partNum}/${totalParts}] 200 OK Received! Published to YouTube Shorts (${uploadRes.videoId}) via ${uploadRes.accountUsed?.projectName || activeProfile.projectName}.`,
+        activeAccount: uploadRes.accountUsed?.projectName || activeProfile.projectName,
         uploadedClips: [...this.uploadedClips],
         failedClips: [...this.failedClips]
       });
@@ -211,7 +232,7 @@ class UploadQueueWorker {
       // Move to next clip in queue
       this.currentIndex++;
 
-      // Strict 3-second buffer delay between sequential uploads to prevent rate limit spikes
+      // 3. Strict 3-Second Rate Limit Buffer Countdown before next clip upload
       if (this.currentIndex < totalParts && this.isRunning) {
         for (let countdown = 3; countdown >= 1; countdown--) {
           this.emit('progress', {
@@ -221,7 +242,7 @@ class UploadQueueWorker {
             totalParts,
             progress: doneProgress,
             step: `[Rate Limit Buffer] Waiting ${countdown}s before uploading Clip #${this.currentIndex + 1} of ${totalParts}...`,
-            activeAccount: uploadRes.accountUsed?.handle || activeProfile.handle,
+            activeAccount: uploadRes.accountUsed?.projectName || activeProfile.projectName,
             uploadedClips: [...this.uploadedClips],
             failedClips: [...this.failedClips]
           });
@@ -229,12 +250,13 @@ class UploadQueueWorker {
         }
       }
 
+      // Next upload starts ONLY after previous 200 OK + 3-second buffer
       this.processNext();
 
     } catch (err) {
       console.warn(`[QUEUE WORKER] Error on Part ${partNum}:`, err.message);
 
-      // Intelligent Quota Fallback: Catch 400 Bad Request & 403 Forbidden quota/upload limit errors
+      // Smart Quota Tracking: Catch 400 & 403 quota/upload limit errors
       const isQuotaError = 
         err.status === 400 ||
         err.status === 403 ||
@@ -243,24 +265,22 @@ class UploadQueueWorker {
         err.message.includes('400') ||
         err.message.toLowerCase().includes('exceeded the number of videos') ||
         err.message.toLowerCase().includes('quota') || 
-        err.message.toLowerCase().includes('daily limit') ||
-        err.message.toLowerCase().includes('rate limit') ||
-        err.message.toLowerCase().includes('exhausted');
+        err.message.toLowerCase().includes('daily limit');
 
       if (isQuotaError && item.attempts <= 5) {
-        // Mark current profile as EXHAUSTED immediately
+        // Mark current project as EXHAUSTED (10,000 units filled)
         const profiles = getYoutubeProfiles();
-        const updated = profiles.map(p => p.id === activeProfile.id ? { ...p, status: 'EXHAUSTED' } : p);
+        const updated = profiles.map(p => p.id === activeProfile.id ? { ...p, status: 'EXHAUSTED', quotaUnitsUsed: DAILY_QUOTA_LIMIT_UNITS } : p);
         saveYoutubeProfiles(updated);
 
-        // Instant failover to next profile in rotation
-        const rot = rotateToNextProfile(`Quota / Limit Hit (400/403) on ${activeProfile.handle} — Seamless Intelligent Failover`);
+        // Instant failover to next project in rotation
+        const rot = rotateToNextProfile(`10,000 Units Quota / Limit Hit (400/403) on ${activeProfile.projectName} — Auto-Switch`);
         
         if (rot.rotated) {
           this.emit('accountRotate', {
-            from: activeProfile.handle,
-            to: rot.currentProfile.handle,
-            reason: `Quota limit hit on ${activeProfile.handle}. Seamlessly switched to ${rot.currentProfile.handle} with zero clip loss!`,
+            from: activeProfile.projectName,
+            to: rot.currentProfile.projectName,
+            reason: `Quota limit hit on ${activeProfile.projectName}. Seamlessly switched to ${rot.currentProfile.projectName}!`,
             clipTitle: item.title
           });
 
@@ -270,23 +290,22 @@ class UploadQueueWorker {
             currentPart: partNum,
             totalParts,
             progress: baseProgress + 4,
-            step: `⚡ Quota Limit Reached on ${activeProfile.handle}! Instantly switched to ${rot.currentProfile.handle}. Resuming Part ${partNum}...`,
-            activeAccount: rot.currentProfile.handle,
+            step: `⚡ Quota Limit Reached on ${activeProfile.projectName}! Auto-switched to ${rot.currentProfile.projectName}. Resuming Clip #${partNum}...`,
+            activeAccount: rot.currentProfile.projectName,
             uploadedClips: [...this.uploadedClips],
             failedClips: [...this.failedClips]
           });
 
-          // Wait 1.5s and re-attempt the exact same clip using the new active account
+          // Buffer 1.5s and re-attempt the exact same clip sequentially with the new project
           await new Promise(r => setTimeout(r, 1500));
           return this.processNext();
         } else {
-          // All accounts exhausted
-          this.failBatch('All configured YouTube accounts in the multi-account pool have exhausted their quotas.');
+          this.failBatch('All 5 configured Google Cloud Projects have reached their 10,000 units daily quota.');
           return;
         }
       }
 
-      // Non-quota error or exceeded re-attempts
+      // Non-quota error or retry limit reached
       item.status = 'FAILED';
       item.error = err.message;
 
@@ -309,11 +328,21 @@ class UploadQueueWorker {
 
   pause() {
     this.isPaused = true;
+    this.emit('progress', {
+      batchId: this.activeBatchId,
+      status: 'PAUSED',
+      step: 'Batch queue worker paused by user.'
+    });
   }
 
   resume() {
     if (this.isPaused) {
       this.isPaused = false;
+      this.emit('progress', {
+        batchId: this.activeBatchId,
+        status: 'PROCESSING',
+        step: 'Batch queue worker resumed.'
+      });
       this.processNext();
     }
   }
@@ -324,12 +353,34 @@ class UploadQueueWorker {
     this.emit('progress', {
       batchId: this.activeBatchId,
       status: 'HALTED',
-      currentPart: this.currentIndex,
-      totalParts: this.queue.length,
-      progress: Math.round((this.currentIndex / (this.queue.length || 1)) * 100),
-      step: 'Batch queue manually cancelled.',
+      step: 'Upload batch queue cancelled.'
+    });
+  }
+
+  finishBatch() {
+    this.isRunning = false;
+    const total = this.queue.length;
+    const uploaded = this.uploadedClips.length;
+    const failed = this.failedClips.length;
+
+    this.emit('progress', {
+      batchId: this.activeBatchId,
+      status: 'COMPLETED',
+      currentPart: total,
+      totalParts: total,
+      progress: 100,
+      step: `🎉 Upload Pipeline Complete! Successfully published ${uploaded} of ${total} clips (${failed} failed).`,
       uploadedClips: [...this.uploadedClips],
       failedClips: [...this.failedClips]
+    });
+
+    this.emit('complete', {
+      batchId: this.activeBatchId,
+      success: true,
+      total,
+      uploaded,
+      failed,
+      clips: [...this.uploadedClips]
     });
   }
 
@@ -337,61 +388,24 @@ class UploadQueueWorker {
     this.isRunning = false;
     this.emit('progress', {
       batchId: this.activeBatchId,
-      status: 'HALTED',
-      currentPart: this.currentIndex + 1,
-      totalParts: this.queue.length,
+      status: 'ERROR',
       progress: Math.round((this.currentIndex / (this.queue.length || 1)) * 100),
-      step: `Batch halted: ${errorMessage}`,
+      step: `🛑 Queue Halted: ${errorMessage}`,
       error: errorMessage,
       uploadedClips: [...this.uploadedClips],
       failedClips: [...this.failedClips]
     });
+
     this.emit('complete', {
+      batchId: this.activeBatchId,
       success: false,
-      batchId: this.activeBatchId,
-      uploaded: this.uploadedClips.length,
-      failed: this.failedClips.length,
+      error: errorMessage,
       total: this.queue.length,
-      reason: errorMessage
-    });
-  }
-
-  finishBatch() {
-    this.isRunning = false;
-    const allSuccessful = this.failedClips.length === 0;
-    this.emit('progress', {
-      batchId: this.activeBatchId,
-      status: allSuccessful ? 'COMPLETED' : 'COMPLETED_WITH_WARNINGS',
-      currentPart: this.queue.length,
-      totalParts: this.queue.length,
-      progress: 100,
-      step: `Batch Complete! Successfully uploaded ${this.uploadedClips.length} of ${this.queue.length} clips with zero limit waste!`,
-      uploadedClips: [...this.uploadedClips],
-      failedClips: [...this.failedClips]
-    });
-    this.emit('complete', {
-      success: allSuccessful,
-      batchId: this.activeBatchId,
       uploaded: this.uploadedClips.length,
       failed: this.failedClips.length,
-      total: this.queue.length
+      clips: [...this.uploadedClips]
     });
-  }
-
-  getStatus() {
-    return {
-      batchId: this.activeBatchId,
-      isRunning: this.isRunning,
-      isPaused: this.isPaused,
-      currentPart: this.currentIndex + 1,
-      totalParts: this.queue.length,
-      progress: this.queue.length > 0 ? Math.round((this.currentIndex / this.queue.length) * 100) : 0,
-      uploadedCount: this.uploadedClips.length,
-      failedCount: this.failedClips.length
-    };
   }
 }
 
-// Singleton Queue Worker Instance
 export const queueWorker = new UploadQueueWorker();
-export default queueWorker;

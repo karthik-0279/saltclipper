@@ -16,9 +16,10 @@ export default function YouTubeBar({
   onShowToast,
   quota = null
 }) {
-  const activeHandle = ytStatus?.activeProfile?.projectName || ytStatus?.activeProfile?.handle || quota?.activeProfileHandle || 'Project 1 (Alpha)';
-  const totalPoolRemaining = quota?.totalPoolRemaining ?? quota?.remainingUploads ?? 425;
-  const totalPoolCapacity = quota?.totalPoolCapacity ?? quota?.dailyLimit ?? 425;
+  const activeHandle = ytStatus?.activeProfile?.projectName || quota?.activeProfileName || 'Google Cloud Project 1';
+  const totalPoolRemaining = quota?.totalPoolRemaining ?? quota?.remainingUploads ?? 30;
+  const totalPoolCapacity = quota?.totalPoolCapacity ?? 30;
+  const remainingUnits = quota?.totalQuotaRemainingUnits ?? 50000;
   const projectsCount = quota?.totalProfilesCount ?? 5;
 
   const scrollToProjects = () => {
@@ -76,7 +77,7 @@ export default function YouTubeBar({
             >
               {quota.isCircuitBreakerOpen 
                 ? `🛑 Quotas Full (${totalPoolRemaining}/${totalPoolCapacity})` 
-                : `⚡ 5-Project Pool: ${totalPoolRemaining}/${totalPoolCapacity} Left`}
+                : `⚡ 5-Project Pool: ${totalPoolRemaining}/${totalPoolCapacity} Uploads (${remainingUnits} Units Left)`}
             </button>
           )}
         </div>

@@ -1,113 +1,107 @@
 /**
  * Google Cloud Console Projects & Multi-Account Rotation Controller
  * 
- * Production Architecture:
- * - 5 Google Cloud Console Projects pre-configured and securely managed in localStorage.
- * - Real YouTube Data API v3 multipart upload requests to:
- *   https://www.googleapis.com/upload/youtube/v3/videos?uploadType=multipart&part=snippet,status
- * - ZERO fake/mock upload functions.
- * - Uses active Google Cloud project's OAuth 2.0 access token from localStorage.
- * - Intelligent Quota Auto-Switch (Zero Limit Waste):
- *   If Project 1 encounters a 403 Quota Exceeded error or hits its daily limit,
- *   the system automatically rotates to Project 2 (and onwards to Project 5)
- *   so 20+ clips upload continuously with real YouTube API responses.
- * - 100% Client-side state in localStorage.
+ * Production Architecture & YouTube Data API v3 Quota Engine:
+ * - 5 Google Cloud Console Projects pre-configured in localStorage.
+ * - YouTube Data API v3 Quota Rules:
+ *   - 10,000 units daily limit per Google Cloud Project.
+ *   - 1 video upload (videos.insert) = ~1,600 units.
+ *   - Safe capacity = 6 uploads per project (6 * 1,600 = 9,600 units).
+ *   - Total 5-project capacity = 50,000 units (~30 Shorts / day).
+ * - Smart Quota Auto-Switching:
+ *   - Pre-checks quota: rotates when quotaUnitsUsed + 1,600 > 10,000.
+ *   - Catches 403 / 400 quota & upload limit errors ("exceeded the number of videos").
+ *   - Seamless failover across 5 projects (1 -> 2 -> 3 -> 4 -> 5).
+ * - Resilience & Retries:
+ *   - Auto-retries transient network glitches and timeouts up to 3 times before rotating.
+ *   - Proactive token validity check before queue execution.
+ * - Minimalist Data Model:
+ *   - Zero unnecessary clutter (keeps only OAuth Client ID, Client Secret, and Google Connect).
  */
 
 export const PROFILES_STORAGE_KEY = 'autoclip_youtube_profiles';
 export const GCP_PROJECTS_STORAGE_KEY = 'saltclipper_gcp_projects';
 export const ROTATION_LOGS_STORAGE_KEY = 'autoclip_youtube_rotation_logs';
 
-// 5 Dedicated Initial Google Cloud Console Projects
+export const DAILY_QUOTA_LIMIT_UNITS = 10000;
+export const UPLOAD_COST_UNITS = 1600;
+export const MAX_SAFE_UPLOADS = Math.floor(DAILY_QUOTA_LIMIT_UNITS / UPLOAD_COST_UNITS); // 6
+
+// 5 Dedicated Initial Google Cloud Console Projects (Minimalist: Client ID + Secret + Connect)
 export const INITIAL_GCP_PROJECTS = [
   {
     id: 'gcp_proj_1',
     projectNumber: 1,
-    projectId: 'saltclipper-prod-01',
-    projectName: 'Google Cloud Project 1 (Alpha)',
-    handle: '@SaltClipperAlpha',
-    email: 'project1@saltclipper-cloud.iam.gserviceaccount.com',
-    dailyLimit: 85,
-    usedToday: 0,
-    status: 'ACTIVE', // ACTIVE | STANDBY | EXHAUSTED
+    projectName: 'Google Cloud Project 1',
     clientId: '7829104-saltclipper-proj1.apps.googleusercontent.com',
     clientSecret: 'GOCSPX-sampleSecretProj1_Alpha',
-    apiKey: 'AIzaSyA_Proj1_GoogleCloudApiAlphaKey99',
     accessToken: '',
+    tokenExpiresAt: 0,
     quotaUnitsUsed: 0,
-    maxQuotaUnits: 10000,
+    maxQuotaUnits: DAILY_QUOTA_LIMIT_UNITS,
+    usedToday: 0,
+    dailyLimit: MAX_SAFE_UPLOADS,
+    status: 'ACTIVE', // ACTIVE | STANDBY | EXHAUSTED
     createdAt: new Date(Date.now() - 86400000 * 30).toISOString()
   },
   {
     id: 'gcp_proj_2',
     projectNumber: 2,
-    projectId: 'saltclipper-prod-02',
-    projectName: 'Google Cloud Project 2 (Beta)',
-    handle: '@SaltClipperBeta',
-    email: 'project2@saltclipper-cloud.iam.gserviceaccount.com',
-    dailyLimit: 85,
-    usedToday: 0,
-    status: 'STANDBY',
+    projectName: 'Google Cloud Project 2',
     clientId: '7829104-saltclipper-proj2.apps.googleusercontent.com',
     clientSecret: 'GOCSPX-sampleSecretProj2_Beta',
-    apiKey: 'AIzaSyB_Proj2_GoogleCloudApiBetaKey88',
     accessToken: '',
+    tokenExpiresAt: 0,
     quotaUnitsUsed: 0,
-    maxQuotaUnits: 10000,
+    maxQuotaUnits: DAILY_QUOTA_LIMIT_UNITS,
+    usedToday: 0,
+    dailyLimit: MAX_SAFE_UPLOADS,
+    status: 'STANDBY',
     createdAt: new Date(Date.now() - 86400000 * 25).toISOString()
   },
   {
     id: 'gcp_proj_3',
     projectNumber: 3,
-    projectId: 'saltclipper-prod-03',
-    projectName: 'Google Cloud Project 3 (Gamma)',
-    handle: '@SaltClipperGamma',
-    email: 'project3@saltclipper-cloud.iam.gserviceaccount.com',
-    dailyLimit: 85,
-    usedToday: 0,
-    status: 'STANDBY',
+    projectName: 'Google Cloud Project 3',
     clientId: '7829104-saltclipper-proj3.apps.googleusercontent.com',
     clientSecret: 'GOCSPX-sampleSecretProj3_Gamma',
-    apiKey: 'AIzaSyC_Proj3_GoogleCloudApiGammaKey77',
     accessToken: '',
+    tokenExpiresAt: 0,
     quotaUnitsUsed: 0,
-    maxQuotaUnits: 10000,
+    maxQuotaUnits: DAILY_QUOTA_LIMIT_UNITS,
+    usedToday: 0,
+    dailyLimit: MAX_SAFE_UPLOADS,
+    status: 'STANDBY',
     createdAt: new Date(Date.now() - 86400000 * 20).toISOString()
   },
   {
     id: 'gcp_proj_4',
     projectNumber: 4,
-    projectId: 'saltclipper-prod-04',
-    projectName: 'Google Cloud Project 4 (Delta)',
-    handle: '@SaltClipperDelta',
-    email: 'project4@saltclipper-cloud.iam.gserviceaccount.com',
-    dailyLimit: 85,
-    usedToday: 0,
-    status: 'STANDBY',
+    projectName: 'Google Cloud Project 4',
     clientId: '7829104-saltclipper-proj4.apps.googleusercontent.com',
     clientSecret: 'GOCSPX-sampleSecretProj4_Delta',
-    apiKey: 'AIzaSyD_Proj4_GoogleCloudApiDeltaKey66',
     accessToken: '',
+    tokenExpiresAt: 0,
     quotaUnitsUsed: 0,
-    maxQuotaUnits: 10000,
+    maxQuotaUnits: DAILY_QUOTA_LIMIT_UNITS,
+    usedToday: 0,
+    dailyLimit: MAX_SAFE_UPLOADS,
+    status: 'STANDBY',
     createdAt: new Date(Date.now() - 86400000 * 15).toISOString()
   },
   {
     id: 'gcp_proj_5',
     projectNumber: 5,
-    projectId: 'saltclipper-prod-05',
-    projectName: 'Google Cloud Project 5 (Epsilon)',
-    handle: '@SaltClipperEpsilon',
-    email: 'project5@saltclipper-cloud.iam.gserviceaccount.com',
-    dailyLimit: 85,
-    usedToday: 0,
-    status: 'STANDBY',
+    projectName: 'Google Cloud Project 5',
     clientId: '7829104-saltclipper-proj5.apps.googleusercontent.com',
     clientSecret: 'GOCSPX-sampleSecretProj5_Epsilon',
-    apiKey: 'AIzaSyE_Proj5_GoogleCloudApiEpsilonKey55',
     accessToken: '',
+    tokenExpiresAt: 0,
     quotaUnitsUsed: 0,
-    maxQuotaUnits: 10000,
+    maxQuotaUnits: DAILY_QUOTA_LIMIT_UNITS,
+    usedToday: 0,
+    dailyLimit: MAX_SAFE_UPLOADS,
+    status: 'STANDBY',
     createdAt: new Date(Date.now() - 86400000 * 10).toISOString()
   }
 ];
@@ -126,20 +120,19 @@ function sanitize(str) {
  * Creates a valid minimal MP4 container blob for testing/multipart fallback
  */
 export function createFallbackVideoBlob(title = 'Clip') {
-  // Minimal valid MP4 container with ftyp and mdat boxes
   const ftyp = [
-    0x00, 0x00, 0x00, 0x20, // box size 32
-    0x66, 0x74, 0x79, 0x70, // 'ftyp'
-    0x69, 0x73, 0x6f, 0x6d, // major brand 'isom'
-    0x00, 0x00, 0x02, 0x00, // minor version
-    0x69, 0x73, 0x6f, 0x6d, // compatible brand 'isom'
-    0x69, 0x73, 0x6f, 0x32, // 'iso2'
-    0x61, 0x76, 0x63, 0x31, // 'avc1'
-    0x6d, 0x70, 0x34, 0x31  // 'mp41'
+    0x00, 0x00, 0x00, 0x20,
+    0x66, 0x74, 0x79, 0x70,
+    0x69, 0x73, 0x6f, 0x6d,
+    0x00, 0x00, 0x02, 0x00,
+    0x69, 0x73, 0x6f, 0x6d,
+    0x69, 0x73, 0x6f, 0x32,
+    0x61, 0x76, 0x63, 0x31,
+    0x6d, 0x70, 0x34, 0x31
   ];
   const mdat = [
-    0x00, 0x00, 0x00, 0x10, // box size 16
-    0x6d, 0x64, 0x61, 0x74, // 'mdat'
+    0x00, 0x00, 0x00, 0x10,
+    0x6d, 0x64, 0x61, 0x74,
     0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00
   ];
@@ -155,7 +148,19 @@ export function getYoutubeProfiles() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        return parsed.map((p, idx) => ({
+          ...p,
+          id: p.id || `gcp_proj_${idx + 1}`,
+          projectNumber: idx + 1,
+          projectName: `Google Cloud Project ${idx + 1}`,
+          clientId: p.clientId || '',
+          clientSecret: p.clientSecret || '',
+          maxQuotaUnits: DAILY_QUOTA_LIMIT_UNITS,
+          dailyLimit: MAX_SAFE_UPLOADS,
+          quotaUnitsUsed: Number(p.quotaUnitsUsed) || (Number(p.usedToday || 0) * UPLOAD_COST_UNITS) || 0,
+          usedToday: Number(p.usedToday) || 0,
+          status: p.status || (idx === 0 ? 'ACTIVE' : 'STANDBY')
+        }));
       }
     }
   } catch (e) {
@@ -184,6 +189,49 @@ export function saveYoutubeProfiles(projects) {
 export const saveGoogleProjects = saveYoutubeProfiles;
 
 /**
+ * Check token validity and expiration for a project or master token
+ */
+export function checkTokenValidity(project = null) {
+  const target = project || getActiveProfile();
+  let token = target?.accessToken;
+
+  if (!token) {
+    try {
+      token = localStorage.getItem('youtube_access_token') ||
+              localStorage.getItem('autoclip_youtube_oauth_token') ||
+              localStorage.getItem('google_access_token');
+    } catch (e) {}
+  }
+
+  if (!token || !token.trim()) {
+    return {
+      isValid: false,
+      isExpired: false,
+      token: null,
+      message: 'No Google Account connected. Please click "Connect Google Account" to link your credentials.'
+    };
+  }
+
+  // Check expiration if timestamp is set
+  const expiresAt = target?.tokenExpiresAt || Number(localStorage.getItem('google_token_expires_at') || 0);
+  if (expiresAt && Date.now() > expiresAt) {
+    return {
+      isValid: false,
+      isExpired: true,
+      token: token.trim(),
+      message: 'Google OAuth token has expired. Please click "Connect Google Account" to refresh authorization.'
+    };
+  }
+
+  return {
+    isValid: true,
+    isExpired: false,
+    token: token.trim(),
+    message: 'Token is active and authorized.'
+  };
+}
+
+/**
  * Get currently ACTIVE Google Cloud Project
  */
 export function getActiveProfile() {
@@ -205,10 +253,10 @@ export const getActiveProject = getActiveProfile;
 export function setActiveProfile(projectId) {
   const projects = getYoutubeProfiles();
   const updated = projects.map(p => {
-    if (p.id === projectId || p.projectId === projectId) {
+    if (p.id === projectId || p.projectNumber === Number(projectId)) {
       return { ...p, status: 'ACTIVE' };
     }
-    const isExhausted = p.usedToday >= p.dailyLimit;
+    const isExhausted = (p.quotaUnitsUsed >= DAILY_QUOTA_LIMIT_UNITS) || (p.usedToday >= MAX_SAFE_UPLOADS);
     return { ...p, status: isExhausted ? 'EXHAUSTED' : 'STANDBY' };
   });
   saveYoutubeProfiles(updated);
@@ -218,22 +266,17 @@ export function setActiveProfile(projectId) {
 export const setActiveProject = setActiveProfile;
 
 /**
- * Update credentials or details for a Google Cloud Project (1-5)
+ * Update ONLY OAuth Client ID & Client Secret (Zero Clutter!)
  */
-export function updateProjectCredentials(projectId, updates) {
+export function updateProjectCredentials(projectId, updates = {}) {
   const projects = getYoutubeProfiles();
   const updated = projects.map(p => {
-    if (p.id === projectId || p.projectId === projectId) {
+    if (p.id === projectId || p.projectNumber === Number(projectId)) {
       return {
         ...p,
-        ...updates,
-        projectId: updates.projectId ? sanitize(updates.projectId.trim()) : p.projectId,
-        clientId: updates.clientId ? sanitize(updates.clientId.trim()) : p.clientId,
-        clientSecret: updates.clientSecret ? sanitize(updates.clientSecret.trim()) : p.clientSecret,
-        apiKey: updates.apiKey ? sanitize(updates.apiKey.trim()) : p.apiKey,
-        accessToken: updates.accessToken !== undefined ? updates.accessToken.trim() : (p.accessToken || ''),
-        handle: updates.handle ? sanitize(updates.handle.trim()) : p.handle,
-        dailyLimit: updates.dailyLimit ? Math.max(1, Number(updates.dailyLimit) || 85) : p.dailyLimit
+        clientId: updates.clientId !== undefined ? sanitize(updates.clientId.trim()) : p.clientId,
+        clientSecret: updates.clientSecret !== undefined ? sanitize(updates.clientSecret.trim()) : p.clientSecret,
+        accessToken: updates.accessToken !== undefined ? updates.accessToken.trim() : (p.accessToken || '')
       };
     }
     return p;
@@ -245,17 +288,58 @@ export function updateProjectCredentials(projectId, updates) {
 export const updateProfile = updateProjectCredentials;
 
 /**
+ * Add a new Google Cloud Project
+ */
+export function addNewProfile(data = {}) {
+  const projects = getYoutubeProfiles();
+  const nextNum = projects.length + 1;
+  const newProject = {
+    id: `gcp_proj_${Date.now()}`,
+    projectNumber: nextNum,
+    projectName: `Google Cloud Project ${nextNum}`,
+    clientId: sanitize((data.clientId || '').trim()),
+    clientSecret: sanitize((data.clientSecret || '').trim()),
+    accessToken: data.accessToken ? data.accessToken.trim() : '',
+    tokenExpiresAt: 0,
+    quotaUnitsUsed: 0,
+    maxQuotaUnits: DAILY_QUOTA_LIMIT_UNITS,
+    usedToday: 0,
+    dailyLimit: MAX_SAFE_UPLOADS,
+    status: projects.length === 0 ? 'ACTIVE' : 'STANDBY',
+    createdAt: new Date().toISOString()
+  };
+  const updated = [...projects, newProject];
+  saveYoutubeProfiles(updated);
+  return newProject;
+}
+
+/**
+ * Delete a profile (maintains at least 1)
+ */
+export function deleteProfile(id) {
+  const projects = getYoutubeProfiles();
+  if (projects.length <= 1) return projects;
+  const filtered = projects.filter(p => p.id !== id && p.projectNumber !== Number(id));
+  if (!filtered.some(p => p.status === 'ACTIVE')) {
+    filtered[0].status = 'ACTIVE';
+  }
+  saveYoutubeProfiles(filtered);
+  return filtered;
+}
+
+/**
  * Master Authorization: Automatically links & authorizes all 5 Google Cloud Projects with OAuth credentials
  */
 export function authorizeAllProjectsWithToken(token, channelInfo = {}) {
   if (!token || typeof token !== 'string') return;
   const cleanToken = token.trim();
+  const expiresAt = Date.now() + 3600 * 1000;
 
-  // Save master tokens to localStorage
   try {
     localStorage.setItem('youtube_access_token', cleanToken);
     localStorage.setItem('autoclip_youtube_oauth_token', cleanToken);
     localStorage.setItem('google_access_token', cleanToken);
+    localStorage.setItem('google_token_expires_at', String(expiresAt));
     if (channelInfo.handle) localStorage.setItem('autoclip_channel_handle', channelInfo.handle);
     if (channelInfo.name) localStorage.setItem('autoclip_channel_name', channelInfo.name);
   } catch (e) {}
@@ -264,9 +348,7 @@ export function authorizeAllProjectsWithToken(token, channelInfo = {}) {
   const updated = projects.map((p, idx) => ({
     ...p,
     accessToken: cleanToken,
-    handle: channelInfo.handle ? sanitize(channelInfo.handle) : p.handle,
-    email: channelInfo.email ? sanitize(channelInfo.email) : p.email,
-    tokenExpiresAt: Date.now() + 3600 * 1000,
+    tokenExpiresAt: expiresAt,
     status: idx === 0 ? 'ACTIVE' : (p.status === 'EXHAUSTED' ? 'EXHAUSTED' : 'STANDBY')
   }));
 
@@ -280,16 +362,15 @@ export function authorizeAllProjectsWithToken(token, channelInfo = {}) {
 export function authorizeSingleProject(projectId, token, channelInfo = {}) {
   if (!token || typeof token !== 'string') return;
   const cleanToken = token.trim();
+  const expiresAt = Date.now() + 3600 * 1000;
 
   const projects = getYoutubeProfiles();
   const updated = projects.map(p => {
-    if (p.id === projectId || p.projectId === projectId) {
+    if (p.id === projectId || p.projectNumber === Number(projectId)) {
       return {
         ...p,
         accessToken: cleanToken,
-        handle: channelInfo.handle ? sanitize(channelInfo.handle) : p.handle,
-        email: channelInfo.email ? sanitize(channelInfo.email) : p.email,
-        tokenExpiresAt: Date.now() + 3600 * 1000
+        tokenExpiresAt: expiresAt
       };
     }
     return p;
@@ -324,78 +405,18 @@ export function disconnectAllProjects() {
     localStorage.removeItem('autoclip_youtube_oauth_token');
     localStorage.removeItem('google_access_token');
     localStorage.removeItem('youtube_tokens');
+    localStorage.removeItem('google_token_expires_at');
   } catch (e) {}
 
   const projects = getYoutubeProfiles();
   const updated = projects.map(p => ({
     ...p,
-    accessToken: ''
+    accessToken: '',
+    tokenExpiresAt: 0
   }));
 
   saveYoutubeProfiles(updated);
   return updated;
-}
-
-/**
- * Add a new Google Cloud Project / Profile
- */
-export function addNewProfile({
-  name,
-  handle,
-  email,
-  dailyLimit = 85,
-  clientId = '',
-  clientSecret = '',
-  apiKey = '',
-  accessToken = '',
-  projectId = ''
-}) {
-  const projects = getYoutubeProfiles();
-  const rawHandle = (handle || '').trim();
-  const cleanHandle = sanitize(rawHandle.startsWith('@') ? rawHandle : `@${rawHandle || 'SaltClipperChannel'}`);
-
-  const newProject = {
-    id: `gcp_proj_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-    projectNumber: projects.length + 1,
-    projectId: sanitize(projectId?.trim() || `saltclipper-prod-${String(projects.length + 1).padStart(2, '0')}`),
-    projectName: sanitize(name?.trim() || `Google Cloud Project ${projects.length + 1}`),
-    handle: cleanHandle,
-    email: sanitize(email?.trim() || `project${projects.length + 1}@saltclipper-cloud.iam.gserviceaccount.com`),
-    dailyLimit: Math.min(500, Math.max(1, Number(dailyLimit) || 85)),
-    usedToday: 0,
-    status: projects.length === 0 ? 'ACTIVE' : 'STANDBY',
-    clientId: sanitize(clientId?.trim() || `mock-oauth-client-${Date.now()}`),
-    clientSecret: sanitize(clientSecret?.trim() || ''),
-    apiKey: sanitize(apiKey?.trim() || ''),
-    accessToken: accessToken ? accessToken.trim() : '',
-    quotaUnitsUsed: 0,
-    maxQuotaUnits: 10000,
-    createdAt: new Date().toISOString()
-  };
-
-  const updated = [...projects, newProject];
-  saveYoutubeProfiles(updated);
-  return newProject;
-}
-
-/**
- * Delete a profile/project (keeps at least 1)
- */
-export function deleteProfile(id) {
-  const projects = getYoutubeProfiles();
-  if (projects.length <= 1) {
-    throw new Error('At least one Google Cloud project must remain configured.');
-  }
-
-  const target = projects.find(p => p.id === id || p.projectId === id);
-  const remaining = projects.filter(p => p.id !== id && p.projectId !== id);
-
-  if (target?.status === 'ACTIVE' && remaining.length > 0) {
-    remaining[0].status = 'ACTIVE';
-  }
-
-  saveYoutubeProfiles(remaining);
-  return remaining;
 }
 
 /**
@@ -404,7 +425,7 @@ export function deleteProfile(id) {
 export function resetProfileQuota(id) {
   const projects = getYoutubeProfiles();
   const updated = projects.map(p => {
-    if (p.id === id || p.projectId === id) {
+    if (p.id === id || p.projectNumber === Number(id)) {
       return {
         ...p,
         usedToday: 0,
@@ -421,7 +442,7 @@ export function resetProfileQuota(id) {
 export const resetProjectQuota = resetProfileQuota;
 
 /**
- * Reset all 5 projects quota counters
+ * Reset all 5 projects quota counters to 0 units
  */
 export function resetAllProfilesQuota() {
   const projects = getYoutubeProfiles();
@@ -449,20 +470,7 @@ export function getRotationLogs() {
   try {
     const raw = localStorage.getItem(ROTATION_LOGS_STORAGE_KEY);
     if (raw) return JSON.parse(raw);
-    
-    const seed = [
-      {
-        id: `rot_seed_1`,
-        timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
-        readableTime: new Date(Date.now() - 3600000 * 2).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        fromProfile: 'Project 1 (Alpha)',
-        toProfile: 'Project 2 (Beta)',
-        reason: 'Daily Safe Limit (85/85) reached — Seamless Failover',
-        clipTitle: 'Curiosity Loop & Shocking Twist'
-      }
-    ];
-    localStorage.setItem(ROTATION_LOGS_STORAGE_KEY, JSON.stringify(seed));
-    return seed;
+    return [];
   } catch (e) {
     return [];
   }
@@ -475,10 +483,10 @@ export function recordRotationLog({ fromProfile, toProfile, reason, clipTitle })
       id: `rot_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       timestamp: new Date().toISOString(),
       readableTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      fromProfile: fromProfile || 'Project 1 (Alpha)',
-      toProfile: toProfile || 'Project 2 (Beta)',
-      reason: reason || '403 Quota Exceeded — Intelligent Failover',
-      clipTitle: clipTitle || 'Viral Video Clip'
+      fromProfile: fromProfile || 'Project 1',
+      toProfile: toProfile || 'Project 2',
+      reason: reason || '10,000 Units Quota Limit — Intelligent Auto-Switch',
+      clipTitle: clipTitle || 'YouTube Short'
     };
     const updated = [newEntry, ...logs].slice(0, 50);
     localStorage.setItem(ROTATION_LOGS_STORAGE_KEY, JSON.stringify(updated));
@@ -497,19 +505,19 @@ export function clearRotationLogs() {
 }
 
 /**
- * Intelligent 5-Project Rotation Engine:
- * Switches from the current project (Project 1) to the next (Project 2...5)
- * whenever a 403 or quota limit is reached.
+ * Smart Quota Auto-Switching Engine (10,000 Units Limit):
+ * Seamlessly rotates from current project to the next in rotation
+ * whenever the 10,000 quota units limit or a 403/400 upload limit is hit.
  */
-export function rotateToNextProfile(reason = 'Safe daily limit reached (85/85)') {
+export function rotateToNextProfile(reason = '10,000 Quota Units Limit Reached (~6 uploads) - Seamless Auto-Switch') {
   const projects = getYoutubeProfiles();
   const currentIndex = projects.findIndex(p => p.status === 'ACTIVE');
   const currentProject = currentIndex !== -1 ? projects[currentIndex] : projects[0];
 
-  // Mark current as EXHAUSTED if it hit daily limit or 403
+  // Mark current as EXHAUSTED
   const updatedProjects = projects.map((p, idx) => {
     if (idx === currentIndex) {
-      return { ...p, status: 'EXHAUSTED' };
+      return { ...p, status: 'EXHAUSTED', quotaUnitsUsed: Math.max(p.quotaUnitsUsed, DAILY_QUOTA_LIMIT_UNITS) };
     }
     return p;
   });
@@ -519,7 +527,9 @@ export function rotateToNextProfile(reason = 'Safe daily limit reached (85/85)')
   const count = updatedProjects.length;
   for (let offset = 1; offset < count; offset++) {
     const candidateIdx = (currentIndex + offset) % count;
-    if (updatedProjects[candidateIdx].usedToday < updatedProjects[candidateIdx].dailyLimit) {
+    const candidate = updatedProjects[candidateIdx];
+    const canFitUpload = (candidate.quotaUnitsUsed + UPLOAD_COST_UNITS <= DAILY_QUOTA_LIMIT_UNITS) && candidate.status !== 'EXHAUSTED';
+    if (canFitUpload) {
       nextIndex = candidateIdx;
       break;
     }
@@ -531,7 +541,7 @@ export function rotateToNextProfile(reason = 'Safe daily limit reached (85/85)')
       rotated: false,
       allExhausted: true,
       currentProfile: currentProject,
-      message: 'All 5 Google Cloud Console projects have exhausted their daily quota limits. Reset quotas or update project keys.'
+      message: 'All 5 Google Cloud Projects have reached their 10,000 units quota limit. Reset quotas or add more accounts.'
     };
   }
 
@@ -542,10 +552,10 @@ export function rotateToNextProfile(reason = 'Safe daily limit reached (85/85)')
 
   // Record rotation event in audit log
   recordRotationLog({
-    fromProfile: currentProject.projectName || currentProject.handle,
-    toProfile: newActiveProject.projectName || newActiveProject.handle,
+    fromProfile: currentProject.projectName,
+    toProfile: newActiveProject.projectName,
     reason,
-    clipTitle: 'Queue Auto-Switch Handshake'
+    clipTitle: 'Batch Auto-Switch Handshake'
   });
 
   return {
@@ -553,28 +563,35 @@ export function rotateToNextProfile(reason = 'Safe daily limit reached (85/85)')
     allExhausted: false,
     previousProfile: currentProject,
     currentProfile: newActiveProject,
-    message: `Intelligent Rotation: Switched from ${currentProject.projectName || currentProject.handle} ➔ ${newActiveProject.projectName || newActiveProject.handle} without pipeline disruption.`
+    message: `Intelligent Quota Auto-Switch: Switched from ${currentProject.projectName} ➔ ${newActiveProject.projectName} (10,000 units preserved).`
   };
 }
 
 export const rotateToNextProject = rotateToNextProfile;
 
 /**
- * Aggregated Multi-Project Statistics (5 Projects)
+ * Aggregated Multi-Project Statistics (5 Projects - 10,000 Units Each)
  */
 export function getMultiAccountStats() {
   const projects = getYoutubeProfiles();
   const totalProfiles = projects.length;
-  const totalCapacity = projects.reduce((sum, p) => sum + (p.dailyLimit || 85), 0);
+  const totalQuotaCapacityUnits = totalProfiles * DAILY_QUOTA_LIMIT_UNITS; // 50,000 units
+  const totalQuotaUsedUnits = projects.reduce((sum, p) => sum + (p.quotaUnitsUsed || 0), 0);
+  const totalQuotaRemainingUnits = Math.max(0, totalQuotaCapacityUnits - totalQuotaUsedUnits);
+
+  const totalUploadsCapacity = totalProfiles * MAX_SAFE_UPLOADS; // 30 uploads
   const totalUsedToday = projects.reduce((sum, p) => sum + (p.usedToday || 0), 0);
-  const totalRemaining = Math.max(0, totalCapacity - totalUsedToday);
+  const totalRemaining = Math.max(0, totalUploadsCapacity - totalUsedToday);
   const activeProfile = getActiveProfile();
-  const isAllExhausted = totalRemaining <= 0;
-  const percentUsed = totalCapacity > 0 ? Math.min(100, Math.round((totalUsedToday / totalCapacity) * 100)) : 0;
+  const isAllExhausted = totalRemaining <= 0 || projects.every(p => p.status === 'EXHAUSTED');
+  const percentUsed = totalQuotaCapacityUnits > 0 ? Math.min(100, Math.round((totalQuotaUsedUnits / totalQuotaCapacityUnits) * 100)) : 0;
 
   return {
     totalProfiles,
-    totalCapacity,
+    totalQuotaCapacityUnits,
+    totalQuotaUsedUnits,
+    totalQuotaRemainingUnits,
+    totalCapacity: totalUploadsCapacity,
     totalUsedToday,
     totalRemaining,
     percentUsed,
@@ -589,9 +606,10 @@ export const getMultiProjectStats = getMultiAccountStats;
 /**
  * Real YouTube Data API v3 Multipart Upload Request
  * 
- * Sends a real POST request to:
- * https://www.googleapis.com/upload/youtube/v3/videos?uploadType=multipart&part=snippet,status
- * Using the active Google Cloud project's OAuth tokens from localStorage.
+ * Resilience & Retries:
+ * - Validates token safety before executing.
+ * - Auto-retries transient network glitches, timeouts, or 5xx server errors up to 3 times with backoff.
+ * - Detects 403 / 400 quota & upload limit errors ("exceeded the number of videos", quotaExceeded).
  */
 export async function uploadToYouTubeDataApiV3({
   clipTitle = 'Viral Clip',
@@ -604,34 +622,17 @@ export async function uploadToYouTubeDataApiV3({
     throw new Error('No active Google Cloud project configured.');
   }
 
-  // Retrieve OAuth Access Token for active project
-  let token = activeProj.accessToken || activeProj.oauthToken;
-  if (!token) {
-    try {
-      token = localStorage.getItem(`gcp_token_${activeProj.id}`) ||
-              localStorage.getItem(`gcp_token_${activeProj.projectId}`) ||
-              localStorage.getItem('autoclip_youtube_oauth_token') ||
-              localStorage.getItem('youtube_access_token') ||
-              localStorage.getItem('google_access_token');
-      if (!token) {
-        const stored = localStorage.getItem('youtube_tokens');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          token = parsed.access_token || parsed.accessToken;
-        }
-      }
-    } catch (e) {}
-  }
-
-  if (!token || !token.trim()) {
-    const err = new Error(
-      `No Google Account connected for ${activeProj.projectName || activeProj.handle}. Please click "Sign in with Google" to automatically link and authorize all 5 projects.`
-    );
+  // Check token validity & expiration
+  const tokenCheck = checkTokenValidity(activeProj);
+  if (!tokenCheck.isValid) {
+    const err = new Error(tokenCheck.message);
     err.status = 401;
     err.isAuthMissing = true;
+    err.isExpired = tokenCheck.isExpired;
     throw err;
   }
 
+  const token = tokenCheck.token;
   const boundary = '===============SALTCLIPPER_BOUNDARY_' + Date.now() + '==';
   const cleanTitle = (clipTitle || 'Viral Video Clip').replace(/[^\w\s-]/g, '').trim().substring(0, 100);
 
@@ -660,15 +661,47 @@ export async function uploadToYouTubeDataApiV3({
 
   const uploadEndpoint = 'https://www.googleapis.com/upload/youtube/v3/videos?uploadType=multipart&part=snippet,status';
 
-  // ACTUAL POST REQUEST TO YOUTUBE DATA API v3
-  const response = await fetch(uploadEndpoint, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token.trim()}`,
-      'Content-Type': `multipart/related; boundary=${boundary}`
-    },
-    body: multipartBlob
-  });
+  // Robust Network Glitch & Timeout Retry Loop (Up to 3 Attempts)
+  let response = null;
+  let networkAttempts = 0;
+  const maxNetworkRetries = 3;
+
+  while (networkAttempts < maxNetworkRetries) {
+    networkAttempts++;
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+
+      response = await fetch(uploadEndpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': `multipart/related; boundary=${boundary}`
+        },
+        body: multipartBlob,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      // Retry on 5xx transient server glitches
+      if (response.status >= 500 && networkAttempts < maxNetworkRetries) {
+        console.warn(`[NETWORK GLITCH] YouTube API returned HTTP ${response.status}. Retrying (${networkAttempts}/${maxNetworkRetries})...`);
+        await new Promise(r => setTimeout(r, networkAttempts * 1000));
+        continue;
+      }
+
+      break; // Received HTTP response
+    } catch (networkErr) {
+      if (networkAttempts < maxNetworkRetries) {
+        console.warn(`[NETWORK GLITCH] ${networkErr.message}. Retrying upload (${networkAttempts}/${maxNetworkRetries})...`);
+        await new Promise(r => setTimeout(r, networkAttempts * 1000));
+      } else {
+        const err = new Error(`Network failure after ${maxNetworkRetries} retries: ${networkErr.message}`);
+        err.isNetworkGlitch = true;
+        throw err;
+      }
+    }
+  }
 
   const responseJson = await response.json().catch(() => null);
 
@@ -682,6 +715,7 @@ export async function uploadToYouTubeDataApiV3({
     err.reason = reason;
     err.responseBody = responseJson;
 
+    // Detect 403 / 400 quota and upload limit errors
     const isQuotaOrLimit = 
       response.status === 403 || 
       response.status === 400 || 
@@ -713,11 +747,11 @@ export async function uploadToYouTubeDataApiV3({
     privacyStatus,
     accountUsed: {
       id: activeProj.id,
-      projectId: activeProj.projectId,
-      name: activeProj.projectName || activeProj.name,
-      handle: activeProj.handle,
+      projectNumber: activeProj.projectNumber,
+      projectName: activeProj.projectName,
       usedToday: (activeProj.usedToday || 0) + 1,
-      dailyLimit: activeProj.dailyLimit
+      quotaUnitsUsed: (activeProj.quotaUnitsUsed || 0) + UPLOAD_COST_UNITS,
+      dailyLimit: MAX_SAFE_UPLOADS
     },
     raw: responseJson,
     timestamp: new Date().toISOString()
@@ -725,9 +759,9 @@ export async function uploadToYouTubeDataApiV3({
 }
 
 /**
- * Execute YouTube upload with Intelligent Rotation Controller:
- * Executes real YouTube Data API v3 multipart request.
- * If 403 Quota Exceeded or Auth error occurs, seamlessly rotates to Project 2 (up to Project 5).
+ * Execute YouTube upload with Intelligent Quota Rotation Controller:
+ * Pre-checks 10,000 units limit. If hit or 403/400 returned, seamlessly
+ * auto-rotates to Project 2 (up to Project 5) without interrupting the queue.
  */
 export async function executeUploadWithRotation({
   clipTitle = 'Viral Clip',
@@ -739,8 +773,10 @@ export async function executeUploadWithRotation({
   let activeProject = getActiveProfile();
   let rotationNote = null;
 
-  if (forceRotate || (activeProject && activeProject.usedToday >= activeProject.dailyLimit)) {
-    const rotResult = rotateToNextProfile('Daily quota limit reached (85/85) - Auto Failover');
+  // Pre-check: If current project has reached 10,000 units or 6 uploads, auto-rotate proactively
+  const isNearLimit = (activeProject?.quotaUnitsUsed + UPLOAD_COST_UNITS > DAILY_QUOTA_LIMIT_UNITS) || (activeProject?.usedToday >= MAX_SAFE_UPLOADS);
+  if (forceRotate || isNearLimit) {
+    const rotResult = rotateToNextProfile('10,000 Units Daily Limit Reached (~6 videos) - Proactive Auto-Switch');
     if (rotResult.rotated) {
       activeProject = rotResult.currentProfile;
       rotationNote = rotResult.message;
@@ -754,12 +790,12 @@ export async function executeUploadWithRotation({
     activeProject = all[0];
   }
 
-  // Attempt real upload with rotation retry loop across all 5 projects
+  // Attempt real upload with rotation failover loop across 5 projects
   let uploadResult = null;
   let attempts = 0;
-  const maxAttempts = 5;
+  const maxProjectRotations = 5;
 
-  while (attempts < maxAttempts) {
+  while (attempts < maxProjectRotations) {
     attempts++;
     try {
       uploadResult = await uploadToYouTubeDataApiV3({
@@ -768,54 +804,58 @@ export async function executeUploadWithRotation({
         privacyStatus: scheduleTime ? 'private' : privacyStatus,
         project: activeProject
       });
-      break; // Successfully uploaded to YouTube!
+      break; // Successfully uploaded!
     } catch (uploadErr) {
-      console.warn(`[YOUTUBE API ERROR] Project ${activeProject.projectName || activeProject.handle}:`, uploadErr.message);
+      console.warn(`[YOUTUBE API ERROR] ${activeProject.projectName}:`, uploadErr.message);
 
-      const isQuotaOrLimitOrAuth =
+      const isQuotaOrLimit =
         uploadErr.status === 403 ||
         uploadErr.status === 400 ||
         uploadErr.isQuotaExceeded ||
-        uploadErr.message.includes('403') ||
-        uploadErr.message.includes('400') ||
         uploadErr.message.toLowerCase().includes('exceeded the number of videos') ||
         uploadErr.message.toLowerCase().includes('quota') ||
-        uploadErr.message.toLowerCase().includes('daily limit') ||
+        uploadErr.message.toLowerCase().includes('daily limit');
+
+      const isAuthOrExpired =
         uploadErr.status === 401 ||
         uploadErr.isAuthMissing ||
-        uploadErr.message.includes('401') ||
-        uploadErr.message.includes('token');
+        uploadErr.isExpired ||
+        uploadErr.message.includes('token') ||
+        uploadErr.message.includes('expired');
 
-      if (isQuotaOrLimitOrAuth && attempts < maxAttempts) {
-        const isLimit = uploadErr.status === 403 || uploadErr.status === 400 || uploadErr.isQuotaExceeded;
-        const reason = isLimit ? 'Quota / Upload Limit Exceeded (400/403)' : 'OAuth Token Error on YouTube API';
-        const rot = rotateToNextProfile(`${reason} - Failover from ${activeProject.projectName || activeProject.handle}`);
+      if ((isQuotaOrLimit || isAuthOrExpired || uploadErr.isNetworkGlitch) && attempts < maxProjectRotations) {
+        const reason = isQuotaOrLimit
+          ? '10,000 Units Quota Limit Exceeded (400/403)'
+          : (isAuthOrExpired ? 'OAuth Token Error' : 'Network Glitch Failover');
+
+        const rot = rotateToNextProfile(`${reason} on ${activeProject.projectName} — Auto-switching to next project`);
         if (rot.rotated) {
           activeProject = rot.currentProfile;
           rotationNote = (rotationNote ? `${rotationNote} | ` : '') + rot.message;
-          continue; // Retry real POST upload with new active project
+          continue; // Retry with next Google Cloud project
         }
       }
 
-      // If rotation cannot continue or non-quota error, re-throw
+      // If rotation cannot continue, re-throw
       throw uploadErr;
     }
   }
 
   if (!uploadResult) {
-    throw new Error('Upload failed across all available Google Cloud projects.');
+    throw new Error('Upload failed across all 5 available Google Cloud projects.');
   }
 
-  // Increment usage on this specific active project
+  // Increment usage on the project that successfully uploaded the clip
   const projects = getYoutubeProfiles();
   const updatedProjects = projects.map(p => {
     if (p.id === activeProject.id) {
       const newUsed = (p.usedToday || 0) + 1;
-      const isExhausted = newUsed >= p.dailyLimit;
+      const newQuotaUnits = (p.quotaUnitsUsed || 0) + UPLOAD_COST_UNITS;
+      const isExhausted = newQuotaUnits + UPLOAD_COST_UNITS > DAILY_QUOTA_LIMIT_UNITS || newUsed >= MAX_SAFE_UPLOADS;
       return {
         ...p,
         usedToday: newUsed,
-        quotaUnitsUsed: (p.quotaUnitsUsed || 0) + 1600,
+        quotaUnitsUsed: newQuotaUnits,
         status: isExhausted ? 'EXHAUSTED' : 'ACTIVE'
       };
     }
@@ -823,9 +863,9 @@ export async function executeUploadWithRotation({
   });
   saveYoutubeProfiles(updatedProjects);
 
-  // If this upload reached the limit, auto-rotate to prepare for the next clip
-  if (activeProject.usedToday + 1 >= activeProject.dailyLimit) {
-    const followUpRotation = rotateToNextProfile('Active project quota limit reached, primed next Google Cloud project.');
+  // If this project is now exhausted, pre-rotate to the next project
+  if (activeProject.quotaUnitsUsed + UPLOAD_COST_UNITS + UPLOAD_COST_UNITS > DAILY_QUOTA_LIMIT_UNITS || (activeProject.usedToday + 1 >= MAX_SAFE_UPLOADS)) {
+    const followUpRotation = rotateToNextProfile('Current project reached 10,000 units capacity; primed next Google Cloud project.');
     if (followUpRotation.rotated) {
       rotationNote = (rotationNote ? `${rotationNote} | ` : '') + followUpRotation.message;
     }

@@ -348,28 +348,35 @@ export async function logoutUser(token) {
 
 export function getLocalQuota() {
   const stats = getMultiAccountStats();
-  const activeProf = stats.activeProfile || { usedToday: 0, dailyLimit: 85, handle: '@AutoClipMain' };
+  const activeProf = stats.activeProfile || { usedToday: 0, dailyLimit: 6, quotaUnitsUsed: 0, projectName: 'Google Cloud Project 1' };
   const uploadsToday = activeProf.usedToday || 0;
-  const dailyLimit = activeProf.dailyLimit || 85;
-  const remaining = Math.max(0, dailyLimit - uploadsToday);
+  const quotaUnitsUsed = activeProf.quotaUnitsUsed || (uploadsToday * 1600);
+  const remainingUnits = Math.max(0, 10000 - quotaUnitsUsed);
+  const remainingUploads = Math.max(0, Math.floor(remainingUnits / 1600));
   const isCircuitBreakerOpen = stats.isAllExhausted;
 
   return {
     success: true,
     uploadsToday,
-    dailyLimit,
-    remainingUploads: remaining,
+    quotaUnitsUsed,
+    maxQuotaUnits: 10000,
+    dailyLimit: 6,
+    remainingUploads,
+    remainingUnits,
     percentUsed: stats.percentUsed,
     circuitBreakerOpen: isCircuitBreakerOpen,
     isCircuitBreakerOpen,
-    circuitBreakerReason: isCircuitBreakerOpen ? 'All configured multi-account quotas exhausted.' : null,
+    circuitBreakerReason: isCircuitBreakerOpen ? 'All 5 Google Cloud Projects have exhausted their 10,000 units quota.' : null,
     nextReset: { display: '12h 00m' },
     canUpload: stats.totalRemaining > 0,
-    totalPoolCapacity: stats.totalCapacity,
+    totalPoolCapacity: stats.totalCapacity || 30,
     totalPoolUsed: stats.totalUsedToday,
     totalPoolRemaining: stats.totalRemaining,
-    activeProfileHandle: activeProf.handle,
-    activeProfileName: activeProf.name,
+    totalQuotaCapacityUnits: stats.totalQuotaCapacityUnits || 50000,
+    totalQuotaUsedUnits: stats.totalQuotaUsedUnits || 0,
+    totalQuotaRemainingUnits: stats.totalQuotaRemainingUnits || 50000,
+    activeProfileHandle: activeProf.projectName || 'Google Cloud Project 1',
+    activeProfileName: activeProf.projectName || 'Google Cloud Project 1',
     totalProfilesCount: stats.totalProfiles
   };
 }
