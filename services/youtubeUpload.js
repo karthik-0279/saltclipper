@@ -54,14 +54,15 @@ function saveCredentials(clientId, clientSecret, redirectUri) {
 }
 
 /**
- * Create Google OAuth2 Client
+ * Create Google OAuth2 Client with dynamic redirect URI support
  */
-function getOAuth2Client() {
+function getOAuth2Client(customRedirectUri = null) {
   const { clientId, clientSecret, redirectUri } = getCredentials();
   if (!clientId || !clientSecret) {
     return null;
   }
-  return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+  const effectiveRedirect = customRedirectUri || redirectUri;
+  return new google.auth.OAuth2(clientId, clientSecret, effectiveRedirect);
 }
 
 /**
@@ -92,8 +93,8 @@ function saveTokens(newTokens) {
 /**
  * Generate Authorization URL for Google Consent Screen
  */
-function getAuthUrl() {
-  const oauth2Client = getOAuth2Client();
+function getAuthUrl(customRedirectUri = null) {
+  const oauth2Client = getOAuth2Client(customRedirectUri);
   if (!oauth2Client) {
     throw new Error('GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is missing. Please configure them in .env or via the UI.');
   }
@@ -111,8 +112,8 @@ function getAuthUrl() {
 /**
  * Exchange Authorization Code for Tokens and Persist
  */
-async function handleAuthCallback(code) {
-  const oauth2Client = getOAuth2Client();
+async function handleAuthCallback(code, customRedirectUri = null) {
+  const oauth2Client = getOAuth2Client(customRedirectUri);
   if (!oauth2Client) {
     throw new Error('OAuth2 Client not configured.');
   }

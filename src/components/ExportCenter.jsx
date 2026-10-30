@@ -69,37 +69,36 @@ export default function ExportCenter({
 
       {/* Single Clip Rendering Progress Banner */}
       {isRendering && (
-        <div className="render-progress-card" style={{ marginBottom: '1rem', background: 'rgba(2, 24, 97, 0.7)', border: '1.5px solid #255DCE', padding: '1rem', borderRadius: '10px' }}>
+        <div className="render-progress-card" style={{ marginBottom: '1rem', background: '#111111', border: '1px solid #333333', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.85rem' }}>
-            <span style={{ fontWeight: 700, color: '#82aaff' }}>⚡ Slicing & Encoding Video...</span>
+            <span style={{ fontWeight: 700, color: '#FFFFFF' }}>⚡ Slicing & Encoding Video...</span>
             <span style={{ fontWeight: 800, color: '#FFFFFF' }}>{renderProgress}%</span>
           </div>
-          <div style={{ height: '8px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.5rem' }}>
-            <div style={{ width: `${renderProgress}%`, height: '100%', background: 'linear-gradient(90deg, #DE1110, #255DCE)', transition: 'width 0.3s ease' }} />
+          <div style={{ height: '6px', background: '#222222', borderRadius: '3px', overflow: 'hidden', marginBottom: '0.5rem' }}>
+            <div style={{ width: `${renderProgress}%`, height: '100%', background: '#FFFFFF', transition: 'width 0.3s ease' }} />
           </div>
-          <div style={{ fontSize: '0.78rem', color: '#8DA4D0' }}>{renderStatusText}</div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{renderStatusText}</div>
         </div>
       )}
 
-      {/* Intelligent Batch Queue Worker Progress Banner (Supports 20+ Clips) */}
+      {/* Intelligent Batch Queue Worker Progress Banner (Strict Sequential Clip-by-Clip + 3s Buffer) */}
       {batchStatus && (
         <div className="render-progress-card" style={{
           marginBottom: '1.25rem',
-          background: 'rgba(2, 24, 97, 0.85)',
-          border: `1.5px solid ${batchStatus.status === 'ERROR' ? '#DE1110' : '#255DCE'}`,
+          background: '#0d0d0d',
+          border: `1px solid ${batchStatus.status === 'ERROR' ? '#ef4444' : (batchStatus.status === 'COMPLETED' ? '#10b981' : '#FFFFFF')}`,
           padding: '1.2rem',
-          borderRadius: '12px',
-          boxShadow: '0 8px 30px rgba(2, 24, 97, 0.7)'
+          borderRadius: 'var(--radius-md)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '1.2rem' }}>
-                {batchStatus.status === 'COMPLETED' ? '🎉' : (batchStatus.status === 'HALTED' ? '🛑' : '⚡')}
+              <span style={{ fontSize: '1.1rem' }}>
+                {batchStatus.status === 'COMPLETED' ? '✓' : (batchStatus.status === 'HALTED' ? '🛑' : '⚡')}
               </span>
               <strong style={{ color: '#FFFFFF', fontSize: '0.92rem' }}>
                 {batchStatus.status === 'COMPLETED'
                   ? `Upload Series Complete (${batchStatus.uploadedClips?.length || 0}/${batchStatus.totalParts} Clips)!`
-                  : `Batch Queue Running: Part ${batchStatus.currentPart || 1} of ${batchStatus.totalParts || clipsCount}`}
+                  : `Sequential Queue Active: Part ${batchStatus.currentPart || 1} of ${batchStatus.totalParts || clipsCount}`}
               </strong>
             </div>
             <span style={{
@@ -107,27 +106,28 @@ export default function ExportCenter({
               fontWeight: 800,
               padding: '2px 8px',
               borderRadius: '10px',
-              background: 'rgba(37, 93, 206, 0.3)',
-              color: '#82aaff',
-              border: '1px solid rgba(37, 93, 206, 0.5)'
+              background: '#222222',
+              color: '#FFFFFF',
+              border: '1px solid #444444'
             }}>
               {batchStatus.progress || 0}% Complete
             </span>
           </div>
 
-          <div style={{ height: '8px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.65rem' }}>
-            <div style={{ width: `${batchStatus.progress || 0}%`, height: '100%', background: 'linear-gradient(90deg, #DE1110, #255DCE, #34d399)', transition: 'width 0.4s ease' }} />
+          <div style={{ height: '6px', background: '#222222', borderRadius: '3px', overflow: 'hidden', marginBottom: '0.65rem' }}>
+            <div style={{ width: `${batchStatus.progress || 0}%`, height: '100%', background: '#FFFFFF', transition: 'width 0.4s ease' }} />
           </div>
 
-          <div style={{ fontSize: '0.8rem', color: '#8DA4D0', marginBottom: '0.75rem' }}>
+          <div style={{ fontSize: '0.8rem', color: '#CCCCCC', marginBottom: '0.75rem', fontFamily: 'monospace' }}>
             {batchStatus.step}
           </div>
 
           {/* List of Uploaded Clips with Direct Links */}
           {batchStatus.uploadedClips && batchStatus.uploadedClips.length > 0 && (
             <div style={{
-              background: 'rgba(2, 11, 46, 0.6)',
-              borderRadius: '8px',
+              background: '#161616',
+              border: '1px solid #2a2a2a',
+              borderRadius: 'var(--radius-sm)',
               padding: '0.75rem',
               maxHeight: '160px',
               overflowY: 'auto',
@@ -135,19 +135,19 @@ export default function ExportCenter({
               flexDirection: 'column',
               gap: '6px'
             }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#82aaff', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#FFFFFF', textTransform: 'uppercase' }}>
                 Uploaded Parts ({batchStatus.uploadedClips.length}):
               </div>
               {batchStatus.uploadedClips.map((item, idx) => (
                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem' }}>
-                  <span style={{ color: '#F0F4FF' }}>
+                  <span style={{ color: '#E0E0E0' }}>
                     Part #{item.part}: {item.title || `Clip #${item.clipId}`}
                   </span>
                   <a 
                     href={item.shortsUrl} 
                     target="_blank" 
                     rel="noreferrer"
-                    style={{ color: '#34d399', textDecoration: 'none', fontWeight: 700 }}
+                    style={{ color: '#FFFFFF', textDecoration: 'underline', fontWeight: 700 }}
                   >
                     View Shorts ↗
                   </a>
@@ -160,16 +160,16 @@ export default function ExportCenter({
 
       {/* Successful Single Upload Result Link */}
       {lastUploadResult?.shortsUrl && (
-        <div style={{ marginBottom: '1.25rem', padding: '0.85rem', background: 'rgba(52, 211, 153, 0.15)', border: '1px solid #34d399', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ marginBottom: '1.25rem', padding: '0.85rem', background: '#0d160e', border: '1px solid #10b981', borderRadius: 'var(--radius-sm)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <span style={{ color: '#34d399', fontWeight: 800, fontSize: '0.88rem' }}>🎉 Live on YouTube Shorts!</span>
+            <span style={{ color: '#34d399', fontWeight: 800, fontSize: '0.88rem' }}>✓ Live on YouTube Shorts!</span>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>URL: {lastUploadResult.shortsUrl}</div>
           </div>
           <a 
             href={lastUploadResult.shortsUrl} 
             target="_blank" 
             rel="noreferrer"
-            style={{ background: '#34d399', color: '#020B2E', padding: '0.4rem 0.85rem', borderRadius: '6px', fontWeight: 800, fontSize: '0.8rem', textDecoration: 'none' }}
+            style={{ background: '#FFFFFF', color: '#000000', padding: '0.4rem 0.85rem', borderRadius: 'var(--radius-sm)', fontWeight: 800, fontSize: '0.8rem', textDecoration: 'none' }}
           >
             Watch Now ↗
           </a>
@@ -184,18 +184,20 @@ export default function ExportCenter({
         disabled={isBatchUploading || isRendering || clipsCount === 0}
         style={{
           cursor: (isBatchUploading || isRendering || clipsCount === 0) ? 'not-allowed' : 'pointer',
-          background: 'linear-gradient(135deg, #DE1110 0%, #ff3b30 40%, #255DCE 100%)',
-          boxShadow: '0 6px 20px rgba(222, 17, 16, 0.45)',
+          background: '#FFFFFF',
+          color: '#000000',
+          border: 'none',
           padding: '1rem',
           fontSize: '1rem',
-          fontWeight: 800
+          fontWeight: 900,
+          borderRadius: 'var(--radius-sm)'
         }}
         title="Slice and upload all generated clips sequentially with smart multi-account failover"
       >
         <span>⚡</span>
         <span>
           {isBatchUploading
-            ? `Continuous Queue Active (${batchStatus?.currentPart || 1}/${clipsCount})...` 
+            ? `Sequential Queue Active (${batchStatus?.currentPart || 1}/${clipsCount})...` 
             : `1-Click Upload Series of ${clipsCount} Clips to YouTube Shorts (Zero Waste)`}
         </span>
       </button>

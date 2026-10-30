@@ -124,20 +124,24 @@ export default function GoogleProjectsManager({ onShowToast }) {
       }
     }
 
-    // 2. Open Google OAuth Popup Window
+    // 2. Open Google OAuth Popup Window with dynamic window.location.origin
     const width = 600;
     const height = 700;
     const left = window.screen.width / 2 - width / 2;
     const top = window.screen.height / 2 - height / 2;
 
+    const origin = window.location.origin;
+    const redirectUri = `${origin}/api/auth/youtube/callback`;
+    const authUrl = `/api/auth/google?origin=${encodeURIComponent(origin)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+
     const popup = window.open(
-      '/api/auth/google',
+      authUrl,
       'google_oauth_popup',
       `width=${width},height=${height},top=${top},left=${left},status=no,toolbar=no,menubar=no`
     );
 
     if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-      window.location.href = '/api/auth/google';
+      window.location.href = authUrl;
     } else {
       if (onShowToast) onShowToast('Opening Google Authorization window...');
     }
@@ -356,6 +360,11 @@ export default function GoogleProjectsManager({ onShowToast }) {
                 ? 'Your Google OAuth credentials are automatically distributed across all 5 rotation projects in localStorage.'
                 : 'Sign in once with Google to authorize the active YouTube upload pipeline across all 5 projects seamlessly.'}
             </p>
+            <div style={{ marginTop: '6px', fontSize: '0.72rem', color: '#888888', display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+              <span>Origin: <code style={{ color: '#FFFFFF', background: '#222222', padding: '1px 5px', borderRadius: '3px', border: '1px solid #333333' }}>{typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173'}</code></span>
+              <span>&bull;</span>
+              <span>Redirect URI: <code style={{ color: '#FFFFFF', background: '#222222', padding: '1px 5px', borderRadius: '3px', border: '1px solid #333333' }}>{typeof window !== 'undefined' ? `${window.location.origin}/api/auth/youtube/callback` : '/api/auth/youtube/callback'}</code></span>
+            </div>
           </div>
         </div>
 

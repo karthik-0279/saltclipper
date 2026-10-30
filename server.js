@@ -723,7 +723,15 @@ const server = http.createServer(async (req, res) => {
   // A. Initiate Google / YouTube OAuth Flow: GET /api/auth/google and GET /api/auth/youtube
   if (pathname === '/api/auth/google' || pathname === '/api/auth/youtube') {
     try {
-      const authUrl = youtubeUpload.getAuthUrl();
+      // Dynamically detect client origin to prevent origin_mismatch errors
+      const clientOrigin = parsedUrl.searchParams.get('origin') ||
+                           req.headers.origin ||
+                           (req.headers.referer ? new URL(req.headers.referer).origin : null) ||
+                           `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
+      const dynamicRedirect = parsedUrl.searchParams.get('redirect_uri') ||
+                              `${clientOrigin.replace(/\/$/, '')}/api/auth/youtube/callback`;
+      
+      const authUrl = youtubeUpload.getAuthUrl(dynamicRedirect);
       res.writeHead(302, { 'Location': authUrl });
       return res.end();
     } catch (err) {
@@ -748,11 +756,11 @@ const server = http.createServer(async (req, res) => {
       return res.end(`
         <!DOCTYPE html>
         <html>
-        <head><title>Authentication Failed</title><style>body{background:#0b0f19;color:#fff;font-family:sans-serif;text-align:center;padding:50px;}</style></head>
+        <head><title>Authentication Failed</title><style>body{background:#000;color:#fff;font-family:sans-serif;text-align:center;padding:50px;}</style></head>
         <body>
           <h2 style="color:#ef4444;">❌ Google / YouTube Authorization Error</h2>
           <p>${escapeHtml(oauthError)}</p>
-          <a href="http://localhost:8080/" style="display:inline-block;margin-top:16px;background:#6366f1;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:700;">Return to Studio</a>
+          <a href="/" style="display:inline-block;margin-top:16px;background:#fff;color:#000;text-decoration:none;padding:10px 20px;border-radius:6px;font-weight:700;">Return to Studio</a>
         </body>
         </html>
       `);
@@ -764,7 +772,11 @@ const server = http.createServer(async (req, res) => {
     }
 
     try {
-      const tokens = await youtubeUpload.handleAuthCallback(code);
+      const clientOrigin = req.headers.origin ||
+                           (req.headers.referer ? new URL(req.headers.referer).origin : null) ||
+                           `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
+      const dynamicRedirect = `${clientOrigin.replace(/\/$/, '')}/api/auth/youtube/callback`;
+      const tokens = await youtubeUpload.handleAuthCallback(code, dynamicRedirect);
       
       // Save tokens securely to active session
       const session = getSessionFromRequest(req);

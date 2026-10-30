@@ -682,7 +682,18 @@ export async function uploadToYouTubeDataApiV3({
     err.reason = reason;
     err.responseBody = responseJson;
 
-    if (response.status === 403 || reason === 'quotaExceeded' || reason === 'dailyLimitExceeded') {
+    const isQuotaOrLimit = 
+      response.status === 403 || 
+      response.status === 400 || 
+      reason === 'quotaExceeded' || 
+      reason === 'dailyLimitExceeded' ||
+      reason === 'uploadLimitExceeded' ||
+      reason === 'rateLimitExceeded' ||
+      msg.toLowerCase().includes('exceeded the number of videos') ||
+      msg.toLowerCase().includes('quota') ||
+      msg.toLowerCase().includes('daily limit');
+
+    if (isQuotaOrLimit) {
       err.isQuotaExceeded = true;
     }
     throw err;
@@ -761,18 +772,23 @@ export async function executeUploadWithRotation({
     } catch (uploadErr) {
       console.warn(`[YOUTUBE API ERROR] Project ${activeProject.projectName || activeProject.handle}:`, uploadErr.message);
 
-      const isQuotaOrAuth =
+      const isQuotaOrLimitOrAuth =
         uploadErr.status === 403 ||
+        uploadErr.status === 400 ||
         uploadErr.isQuotaExceeded ||
         uploadErr.message.includes('403') ||
-        uploadErr.message.includes('quota') ||
+        uploadErr.message.includes('400') ||
+        uploadErr.message.toLowerCase().includes('exceeded the number of videos') ||
+        uploadErr.message.toLowerCase().includes('quota') ||
+        uploadErr.message.toLowerCase().includes('daily limit') ||
         uploadErr.status === 401 ||
         uploadErr.isAuthMissing ||
         uploadErr.message.includes('401') ||
         uploadErr.message.includes('token');
 
-      if (isQuotaOrAuth && attempts < maxAttempts) {
-        const reason = uploadErr.status === 403 ? '403 Quota Exceeded on YouTube API' : 'OAuth Token Error on YouTube API';
+      if (isQuotaOrLimitOrAuth && attempts < maxAttempts) {
+        const isLimit = uploadErr.status === 403 || uploadErr.status === 400 || uploadErr.isQuotaExceeded;
+        const reason = isLimit ? 'Quota / Upload Limit Exceeded (400/403)' : 'OAuth Token Error on YouTube API';
         const rot = rotateToNextProfile(`${reason} - Failover from ${activeProject.projectName || activeProject.handle}`);
         if (rot.rotated) {
           activeProject = rot.currentProfile;

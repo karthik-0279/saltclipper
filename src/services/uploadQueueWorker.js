@@ -35,7 +35,7 @@ class UploadQueueWorker {
       accountRotate: [],
       complete: []
     };
-    this.delayMs = 2500; // 2.5s safe inter-upload delay between clips
+    this.delayMs = 3000; // Strict 3-second buffer between uploads to prevent rate limit spikes
     this.uploadedClips = [];
     this.failedClips = [];
   }
@@ -211,9 +211,22 @@ class UploadQueueWorker {
       // Move to next clip in queue
       this.currentIndex++;
 
-      // Cooldown delay before next clip
+      // Strict 3-second buffer delay between sequential uploads to prevent rate limit spikes
       if (this.currentIndex < totalParts && this.isRunning) {
-        await new Promise(r => setTimeout(r, this.delayMs));
+        for (let countdown = 3; countdown >= 1; countdown--) {
+          this.emit('progress', {
+            batchId: this.activeBatchId,
+            status: 'PROCESSING',
+            currentPart: partNum,
+            totalParts,
+            progress: doneProgress,
+            step: `[Rate Limit Buffer] Waiting ${countdown}s before uploading Clip #${this.currentIndex + 1} of ${totalParts}...`,
+            activeAccount: uploadRes.accountUsed?.handle || activeProfile.handle,
+            uploadedClips: [...this.uploadedClips],
+            failedClips: [...this.failedClips]
+          });
+          await new Promise(r => setTimeout(r, 1000));
+        }
       }
 
       this.processNext();
@@ -221,13 +234,18 @@ class UploadQueueWorker {
     } catch (err) {
       console.warn(`[QUEUE WORKER] Error on Part ${partNum}:`, err.message);
 
-      // Intelligent Quota Fallback: Check if 403 or quota exceeded
+      // Intelligent Quota Fallback: Catch 400 Bad Request & 403 Forbidden quota/upload limit errors
       const isQuotaError = 
+        err.status === 400 ||
+        err.status === 403 ||
+        err.isQuotaExceeded ||
         err.message.includes('403') ||
-        err.message.includes('quota') || 
-        err.message.includes('quotaExceeded') || 
-        err.message.includes('dailyLimitExceeded') ||
-        err.message.includes('exhausted');
+        err.message.includes('400') ||
+        err.message.toLowerCase().includes('exceeded the number of videos') ||
+        err.message.toLowerCase().includes('quota') || 
+        err.message.toLowerCase().includes('daily limit') ||
+        err.message.toLowerCase().includes('rate limit') ||
+        err.message.toLowerCase().includes('exhausted');
 
       if (isQuotaError && item.attempts <= 5) {
         // Mark current profile as EXHAUSTED immediately
@@ -236,13 +254,13 @@ class UploadQueueWorker {
         saveYoutubeProfiles(updated);
 
         // Instant failover to next profile in rotation
-        const rot = rotateToNextProfile(`403 Quota Exceeded on ${activeProfile.handle} — Seamless Intelligent Failover`);
+        const rot = rotateToNextProfile(`Quota / Limit Hit (400/403) on ${activeProfile.handle} — Seamless Intelligent Failover`);
         
         if (rot.rotated) {
           this.emit('accountRotate', {
             from: activeProfile.handle,
             to: rot.currentProfile.handle,
-            reason: `403 Quota Hit on ${activeProfile.handle}. Seamlessly switched to ${rot.currentProfile.handle} with zero clip loss!`,
+            reason: `Quota limit hit on ${activeProfile.handle}. Seamlessly switched to ${rot.currentProfile.handle} with zero clip loss!`,
             clipTitle: item.title
           });
 
