@@ -38,6 +38,7 @@ export default function GoogleProjectsManager({ onShowToast }) {
     clientId: '',
     clientSecret: '',
     apiKey: '',
+    accessToken: '',
     dailyLimit: 85
   });
 
@@ -74,6 +75,7 @@ export default function GoogleProjectsManager({ onShowToast }) {
       clientId: proj.clientId || '',
       clientSecret: proj.clientSecret || '',
       apiKey: proj.apiKey || '',
+      accessToken: proj.accessToken || '',
       dailyLimit: proj.dailyLimit || 85
     });
   };
@@ -303,6 +305,17 @@ export default function GoogleProjectsManager({ onShowToast }) {
                       }}>
                         {isActive ? 'ACTIVE UPLOADER' : (isExhausted ? 'QUOTA EXHAUSTED' : 'STANDBY (IN ROTATION)')}
                       </span>
+                      <span style={{
+                        fontSize: '0.66rem',
+                        fontWeight: 700,
+                        padding: '2px 6px',
+                        borderRadius: '10px',
+                        background: proj.accessToken ? '#003300' : '#221111',
+                        color: proj.accessToken ? '#34d399' : '#f87171',
+                        border: `1px solid ${proj.accessToken ? '#059669' : '#7f1d1d'}`
+                      }}>
+                        {proj.accessToken ? '● OAuth Token Set' : '○ No OAuth Token'}
+                      </span>
                     </div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                       <span style={{ color: '#FFFFFF', fontFamily: 'monospace' }}>{proj.projectId || `proj-${idx + 1}`}</span> &bull; Channel: <span style={{ color: '#FFFFFF' }}>{proj.handle}</span>
@@ -514,6 +527,32 @@ export default function GoogleProjectsManager({ onShowToast }) {
                       />
                     </div>
 
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#FFFFFF', marginBottom: '3px' }}>
+                        OAuth 2.0 Access Token (Bearer Token `ya29...`) * (Required for real YouTube Data API v3 upload)
+                      </label>
+                      <input
+                        type="password"
+                        value={editFormData.accessToken}
+                        onChange={(e) => setEditFormData({ ...editFormData, accessToken: e.target.value })}
+                        placeholder="ya29.a0AfH6SMB... (Used in Authorization: Bearer <TOKEN> to https://www.googleapis.com/upload/youtube/v3/videos)"
+                        style={{
+                          width: '100%',
+                          padding: '0.6rem',
+                          background: 'var(--bg-subtle)',
+                          border: '1px solid var(--card-border)',
+                          borderRadius: 'var(--radius-sm)',
+                          color: '#FFFFFF',
+                          fontSize: '0.82rem',
+                          boxSizing: 'border-box',
+                          fontFamily: 'monospace'
+                        }}
+                      />
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Stored securely in browser localStorage. Real multipart video POST requests authenticate directly with this Google token.
+                      </div>
+                    </div>
+
                     <div>
                       <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '3px' }}>
                         Linked Channel Handle
@@ -655,3 +694,4 @@ export default function GoogleProjectsManager({ onShowToast }) {
     </section>
   );
 }
+

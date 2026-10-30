@@ -85,6 +85,7 @@ class UploadQueueWorker {
       endSec: clip.endSec ?? clip.end ?? 65,
       aspect: aspect || '9:16',
       sourceUrl,
+      videoBlob: clip.videoBlob || clip.blob || null,
       privacyStatus: privacyStatus || 'public',
       status: 'PENDING',
       attempts: 0,
@@ -169,9 +170,10 @@ class UploadQueueWorker {
       item.attempts++;
       item.status = 'UPLOADING';
 
-      // Execute upload through rotation manager
+      // Execute real YouTube Data API v3 multipart upload through rotation manager
       const uploadRes = await executeUploadWithRotation({
         clipTitle: item.title,
+        videoBlob: item.videoBlob || null,
         privacyStatus: item.privacyStatus
       });
 

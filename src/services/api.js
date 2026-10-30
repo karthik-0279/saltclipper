@@ -26,6 +26,8 @@ import {
   rotateToNextProfile,
   getMultiAccountStats,
   executeUploadWithRotation,
+  uploadToYouTubeDataApiV3,
+  createFallbackVideoBlob,
   PROFILES_STORAGE_KEY,
   ROTATION_LOGS_STORAGE_KEY
 } from './profileManager';
@@ -48,6 +50,8 @@ export {
   rotateToNextProfile,
   getMultiAccountStats,
   executeUploadWithRotation,
+  uploadToYouTubeDataApiV3,
+  createFallbackVideoBlob,
   PROFILES_STORAGE_KEY,
   ROTATION_LOGS_STORAGE_KEY
 };
@@ -419,29 +423,59 @@ export async function resetYouTubeQuota(dailyLimit = 85) {
 export async function initiateClipRender(payload) {
   const cleanUrl = sanitizeUrl(payload.sourceUrl);
   const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-  
-  clientJobs[jobId] = {
+  const cleanTitle = sanitizeText(payload.title || 'Viral Clip');
+
+  let uploadStatus = null;
+  let youtubeVideoId = null;
+  let youtubeUrl = null;
+  let accountUsed = null;
+  let error = null;
+
+  if (payload.autoUploadYouTube) {
+    try {
+      const uploadResult = await executeUploadWithRotation({
+        clipTitle: cleanTitle,
+        videoBlob: payload.videoBlob || null,
+        privacyStatus: payload.privacyStatus || 'public'
+      });
+      uploadStatus = 'UPLOADED';
+      youtubeVideoId = uploadResult.videoId;
+      youtubeUrl = uploadResult.shortsUrl;
+      accountUsed = uploadResult.accountUsed;
+    } catch (err) {
+      uploadStatus = 'ERROR';
+      error = err.message;
+    }
+  }
+
+  const job = {
     id: jobId,
     jobId,
-    status: 'PROCESSING',
-    progress: 15,
-    step: 'Analyzing keyframes and curiosity loops...',
-    title: sanitizeText(payload.title || 'Viral Clip'),
+    status: error ? 'ERROR' : 'COMPLETED',
+    progress: 100,
+    step: error 
+      ? `Upload failed: ${error}`
+      : (uploadStatus === 'UPLOADED' 
+          ? `🎉 Published to YouTube Shorts via ${accountUsed?.name || accountUsed?.handle || 'Active Project'}!`
+          : '✅ Video Ready and Sliced!'),
+    title: cleanTitle,
     sourceUrl: cleanUrl,
     startTime: payload.startTime,
     endTime: payload.endTime,
     aspect: payload.aspect || '9:16',
     autoUploadYouTube: Boolean(payload.autoUploadYouTube),
     privacyStatus: payload.privacyStatus || 'public',
+    uploadStatus: uploadStatus || 'RENDERED',
+    youtubeVideoId,
+    youtubeUrl,
+    accountUsed,
+    error,
+    filename: `${cleanTitle.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_')}.mp4`,
     createdAt: Date.now()
   };
 
-  return {
-    success: true,
-    jobId,
-    status: 'PROCESSING',
-    progress: 15
-  };
+  clientJobs[jobId] = job;
+  return job;
 }
 
 export async function pollJobStatus(jobId) {
@@ -450,41 +484,9 @@ export async function pollJobStatus(jobId) {
     return {
       status: 'COMPLETED',
       progress: 100,
-      step: 'Rendering Complete! Playable MP4 Ready.'
+      step: 'Processing complete.'
     };
   }
-
-  if (job.progress < 45) {
-    job.progress = 50;
-    job.step = `Reframing into ${job.aspect} vertical mobile canvas...`;
-  } else if (job.progress < 85) {
-    job.progress = 85;
-    job.step = job.autoUploadYouTube ? 'Auto-publishing to YouTube Shorts with Multi-Account Rotation...' : 'Encoding final high-bitrate MP4...';
-  } else {
-    job.progress = 100;
-    job.status = 'COMPLETED';
-
-    if (job.autoUploadYouTube) {
-      try {
-        const uploadResult = await executeUploadWithRotation({
-          clipTitle: job.title,
-          privacyStatus: job.privacyStatus
-        });
-        job.uploadStatus = 'UPLOADED';
-        job.youtubeVideoId = uploadResult.videoId;
-        job.youtubeUrl = uploadResult.shortsUrl;
-        job.accountUsed = uploadResult.accountUsed;
-        job.step = `Published to YouTube Shorts via ${uploadResult.accountUsed.handle}! 🎉`;
-      } catch (err) {
-        job.uploadStatus = 'FAILED';
-        job.step = `Upload note: ${sanitizeText(err.message)}`;
-      }
-    } else {
-      job.step = 'Rendering Complete! Playable MP4 Ready.';
-      job.filename = `${(job.title || 'viral_clip').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_')}.mp4`;
-    }
-  }
-
   return { ...job };
 }
 
@@ -502,11 +504,12 @@ export async function initiateFullVideoDownload(sourceUrl, title) {
 // 8. Client-Side Batch & Single Uploads with Multi-Account Rotation
 // ==========================================
 
-export async function uploadClipToYouTube({ filePath, title, privacyStatus = 'public', scheduleTime = null }) {
+export async function uploadClipToYouTube({ filePath, title, privacyStatus = 'public', scheduleTime = null, videoBlob = null }) {
   const uploadResult = await executeUploadWithRotation({
     clipTitle: sanitizeText(title || 'Viral Clip'),
     privacyStatus,
-    scheduleTime
+    scheduleTime,
+    videoBlob
   });
 
   return {
