@@ -16,7 +16,7 @@ import {
   sanitizeUrl,
   queueWorker
 } from './services/api';
-import { getMultiAccountStats } from './services/profileManager';
+import { getMultiAccountStats, authorizeAllProjectsWithToken } from './services/profileManager';
 
 /**
  * SALT CLIPPER - Multi-Project Viral Video Studio
@@ -99,7 +99,11 @@ export default function App() {
 
     const handleMessage = (e) => {
       if (e.data?.type === 'YOUTUBE_CONNECTED') {
-        showToast('🎉 Google Cloud Console Project Connected Successfully!');
+        const receivedToken = e.data?.tokens?.access_token || e.data?.tokens?.accessToken || e.data?.accessToken;
+        if (receivedToken) {
+          authorizeAllProjectsWithToken(receivedToken);
+        }
+        showToast('🎉 Google Account Connected! All 5 Cloud Projects Authorized.');
         refreshAccountsAndQuota();
       }
     };

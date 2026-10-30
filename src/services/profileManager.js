@@ -245,6 +245,98 @@ export function updateProjectCredentials(projectId, updates) {
 export const updateProfile = updateProjectCredentials;
 
 /**
+ * Master Authorization: Automatically links & authorizes all 5 Google Cloud Projects with OAuth credentials
+ */
+export function authorizeAllProjectsWithToken(token, channelInfo = {}) {
+  if (!token || typeof token !== 'string') return;
+  const cleanToken = token.trim();
+
+  // Save master tokens to localStorage
+  try {
+    localStorage.setItem('youtube_access_token', cleanToken);
+    localStorage.setItem('autoclip_youtube_oauth_token', cleanToken);
+    localStorage.setItem('google_access_token', cleanToken);
+    if (channelInfo.handle) localStorage.setItem('autoclip_channel_handle', channelInfo.handle);
+    if (channelInfo.name) localStorage.setItem('autoclip_channel_name', channelInfo.name);
+  } catch (e) {}
+
+  const projects = getYoutubeProfiles();
+  const updated = projects.map((p, idx) => ({
+    ...p,
+    accessToken: cleanToken,
+    handle: channelInfo.handle ? sanitize(channelInfo.handle) : p.handle,
+    email: channelInfo.email ? sanitize(channelInfo.email) : p.email,
+    tokenExpiresAt: Date.now() + 3600 * 1000,
+    status: idx === 0 ? 'ACTIVE' : (p.status === 'EXHAUSTED' ? 'EXHAUSTED' : 'STANDBY')
+  }));
+
+  saveYoutubeProfiles(updated);
+  return updated;
+}
+
+/**
+ * Authorize an individual project with Google OAuth tokens
+ */
+export function authorizeSingleProject(projectId, token, channelInfo = {}) {
+  if (!token || typeof token !== 'string') return;
+  const cleanToken = token.trim();
+
+  const projects = getYoutubeProfiles();
+  const updated = projects.map(p => {
+    if (p.id === projectId || p.projectId === projectId) {
+      return {
+        ...p,
+        accessToken: cleanToken,
+        handle: channelInfo.handle ? sanitize(channelInfo.handle) : p.handle,
+        email: channelInfo.email ? sanitize(channelInfo.email) : p.email,
+        tokenExpiresAt: Date.now() + 3600 * 1000
+      };
+    }
+    return p;
+  });
+
+  saveYoutubeProfiles(updated);
+  return updated;
+}
+
+/**
+ * Check if at least one project or master token is authorized
+ */
+export function isAnyProjectAuthorized() {
+  try {
+    const masterToken = 
+      localStorage.getItem('youtube_access_token') ||
+      localStorage.getItem('autoclip_youtube_oauth_token') ||
+      localStorage.getItem('google_access_token');
+    if (masterToken && masterToken.trim()) return true;
+  } catch (e) {}
+
+  const projects = getYoutubeProfiles();
+  return projects.some(p => Boolean(p.accessToken && p.accessToken.trim()));
+}
+
+/**
+ * Disconnect Google Account across all projects
+ */
+export function disconnectAllProjects() {
+  try {
+    localStorage.removeItem('youtube_access_token');
+    localStorage.removeItem('autoclip_youtube_oauth_token');
+    localStorage.removeItem('google_access_token');
+    localStorage.removeItem('youtube_tokens');
+  } catch (e) {}
+
+  const projects = getYoutubeProfiles();
+  const updated = projects.map(p => ({
+    ...p,
+    accessToken: ''
+  }));
+
+  saveYoutubeProfiles(updated);
+  return updated;
+}
+
+/**
  * Add a new Google Cloud Project / Profile
  */
 export function addNewProfile({
@@ -533,7 +625,7 @@ export async function uploadToYouTubeDataApiV3({
 
   if (!token || !token.trim()) {
     const err = new Error(
-      `No OAuth Access Token found for ${activeProj.projectName || activeProj.handle}. Please provide an OAuth 2.0 Access Token in the Google Cloud Projects section to execute real YouTube uploads.`
+      `No Google Account connected for ${activeProj.projectName || activeProj.handle}. Please click "Sign in with Google" to automatically link and authorize all 5 projects.`
     );
     err.status = 401;
     err.isAuthMissing = true;

@@ -28,6 +28,10 @@ import {
   executeUploadWithRotation,
   uploadToYouTubeDataApiV3,
   createFallbackVideoBlob,
+  authorizeAllProjectsWithToken,
+  authorizeSingleProject,
+  isAnyProjectAuthorized,
+  disconnectAllProjects,
   PROFILES_STORAGE_KEY,
   ROTATION_LOGS_STORAGE_KEY
 } from './profileManager';
@@ -52,6 +56,10 @@ export {
   executeUploadWithRotation,
   uploadToYouTubeDataApiV3,
   createFallbackVideoBlob,
+  authorizeAllProjectsWithToken,
+  authorizeSingleProject,
+  isAnyProjectAuthorized,
+  disconnectAllProjects,
   PROFILES_STORAGE_KEY,
   ROTATION_LOGS_STORAGE_KEY
 };

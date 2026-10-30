@@ -818,8 +818,11 @@ const server = http.createServer(async (req, res) => {
           <script>
             try {
               if (window.opener) {
-                window.opener.postMessage({ type: 'YOUTUBE_CONNECTED' }, window.location.origin);
-                setTimeout(() => window.close(), 1500);
+                window.opener.postMessage({ 
+                  type: 'YOUTUBE_CONNECTED', 
+                  tokens: ${JSON.stringify(tokens || {})} 
+                }, '*');
+                setTimeout(() => window.close(), 1200);
               } else {
                 setTimeout(() => { window.location.href = 'http://localhost:8080/'; }, 1000);
               }
@@ -856,6 +859,21 @@ const server = http.createServer(async (req, res) => {
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ error: err.message }));
+    }
+  }
+
+  // C2. Retrieve Active YouTube Tokens for Client-Side Multi-Project Sync: GET /api/auth/youtube/tokens
+  if (pathname === '/api/auth/youtube/tokens') {
+    const tokens = youtubeUpload.getStoredTokens();
+    if (tokens && (tokens.access_token || tokens.refresh_token)) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({
+        connected: true,
+        tokens
+      }));
+    } else {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ connected: false, message: 'No stored tokens' }));
     }
   }
 
